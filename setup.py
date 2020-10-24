@@ -17,4 +17,7 @@ setup(name='moves',
           'console_scripts': [
               'moves = moves.main:main'
           ]
-      })
+      },
+      install_requires=[
+          'Flask'
+      ])

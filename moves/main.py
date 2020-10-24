@@ -1,10 +1,12 @@
 #!/usr/bin env python
 
-import moves
+
+from moves import rest
+
 
 def main():
-    print('hello world')
-    print(moves)
+    rest.Rest().run()
+
 
 if __name__ == '__main__':
     main()
