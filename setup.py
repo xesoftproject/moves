@@ -15,7 +15,8 @@ setup(name='moves',
       python_requires='>=3.8',
       entry_points={
           'console_scripts': [
-              'moves = moves.main:main'
+              'moves-web = moves.web:main',
+              'moves-rest = moves.rest:main'
           ]
       },
       install_requires=[
