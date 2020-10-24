@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>big red button</title>
+<script type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@5.0.0/bundles/stomp.umd.min.js"
+></script>
+<script type="text/javascript">
+	document.addEventListener("DOMContentLoaded", function() {
+		const client = new StompJs.Client({
+			brokerURL : 'ws://localhost:12345',
+			debug : console.log.bind(console)
+		});
+
+		client.onConnect = function(frame) {
+			console.log('onConnect: %o', frame);
+		};
+
+		client.onStompError = function(frame) {
+			console.log('Broker reported error: ' + frame.headers['message']);
+			console.log('Additional details: ' + frame.body);
+		};
+
+		client.activate();
+
+		var subscription = client.subscribe('/queue/test', function(message) {
+			console.log('got %o', message.body);
+
+			const li = document.createElement('li');
+			li.textContent = message.body;
+			document.querySelector('ul').appendChild(li);
+		});
+	});
+</script>
+</head>
+<body>
+    <ul>
+    </ul>
+</body>
+</html>

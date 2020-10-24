@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>big red button</title>
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelector('button').addEventListener('click', function() {
+            return fetch('http://localhost:{{port}}/update', {
+                method : 'POST',
+                mode: 'no-cors',
+                body : 'clicked'
+            }).then(function(response) {
+                return response.text();
+            }).then(function(data) {
+                // TODO for some reason there is no response
+                console.log('Success:', data);
+            }).catch(function(error) {
+                console.error('Error:', error);
+            });
+        });
+    });
+</script>
+</head>
+<body>
+    <button>Big red button</button>
+</body>
+</html>
