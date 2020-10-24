@@ -21,5 +21,7 @@ setup(name='moves',
           ]
       },
       install_requires=[
-          'Flask'
+          'Flask',
+          'CoilMQ',
+          'stomp.py'
       ])
