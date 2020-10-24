@@ -12,6 +12,10 @@ class Web(Flask):
         def index():
             return render_template('index.html', port=configurations.REST_PORT)
 
+        @self.route('/<path>')
+        def web(path):
+            return render_template(path, port=configurations.REST_PORT)
+
     def run(self):
         return super().run(port=configurations.WEB_PORT)
 
