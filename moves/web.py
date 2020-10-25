@@ -20,6 +20,7 @@ class Web(Flask):
         def web(path):
             return render_template(path,
                                    rest_port=configurations.REST_PORT,
+                                   stomp_port=configurations.STOMP_PORT,
                                    ws_port=configurations.WS_PORT,
                                    amq_queue=configurations.AMQ_QUEUE)
 

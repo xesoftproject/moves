@@ -22,6 +22,5 @@ setup(name='moves',
       },
       install_requires=[
           'Flask',
-          'stomp.py',
-          'websocket_client'
+          'stomp.py'
       ])

@@ -7,34 +7,38 @@
     src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@5.0.0/bundles/stomp.umd.min.js"
 ></script>
 <script type="text/javascript">
-	document.addEventListener("DOMContentLoaded",
-			function() {
-				const client = new StompJs.Client({
-					brokerURL : 'ws://localhost:{{ws_port}}',
-					debug : console.log.bind(console)
-				});
+	let stompClient;
 
-				client.onConnect = function(frame) {
-					console.log('onConnect: %o', frame);
-				};
+	function main() {
+		stompClient = new StompJs.Client({
+			connectHeaders : {
 
-				client.onStompError = function(frame) {
-					console.error('Broker reported error: '
-							+ frame.headers['message']);
-					console.error('Additional details: ' + frame.body);
-				};
+			},
+			brokerURL : 'ws://localhost:{{ws_port}}',
+			debug : function(str) {
+				console.log('STOMP: ' + str);
+			},
+			reconnectDelay : 200,
+			onConnect : function(frame) {
+				console.log('onConnect: %o', frame);
 
-				client.activate();
-
-				var subscription = client.subscribe('{{amq_queue}}', function(
-						message) {
+				this.subscribe('{{amq_queue}}', function(message) {
 					console.log('got %o', message.body);
 
 					const li = document.createElement('li');
 					li.textContent = message.body;
 					document.querySelector('ul').appendChild(li);
+
+					message.ack();
+				}, {
+					ack : 'client'
 				});
-			});
+			}
+		});
+		stompClient.activate();
+	}
+
+	document.addEventListener("DOMContentLoaded", main);
 </script>
 </head>
 <body>
