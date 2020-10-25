@@ -22,5 +22,7 @@ setup(name='moves',
       },
       install_requires=[
           'Flask',
-          'stomp.py'
+          'stomp.py',
+          'python-chess',
+          'flask-cors'
       ])

@@ -6,23 +6,30 @@
 <script type="text/javascript">
 	document.addEventListener("DOMContentLoaded", function() {
 		document.querySelector('button').addEventListener('click', function() {
-			const now = new Date();
+			const move = document.querySelector('input').value;
 
 			return fetch('http://localhost:{{rest_port}}/update', {
 				method : 'POST',
-				mode : 'no-cors',
-				body : 'clicked' + now
+				body : move
 			}).then(function(response) {
 				return response.text();
 			}).then(function(data) {
-				// TODO for some reason there is no response
-				console.log('Success:', data);
+				document.querySelector('pre').textContent = data;
 			});
 		});
 	});
 </script>
 </head>
 <body>
+    <input value="e2e4">
     <button>Big red button</button>
+    <pre>r n b q k b n r
+p p p p p p p p
+. . . . . . . .
+. . . . . . . .
+. . . . . . . .
+. . . . . . . .
+P P P P P P P P
+R N B Q K B N R</pre>
 </body>
 </html>
