@@ -6,7 +6,7 @@
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelector('button').addEventListener('click', function() {
-            return fetch('http://localhost:{{port}}/update', {
+            return fetch('http://localhost:{{rest_port}}/update', {
                 method : 'POST',
                 mode: 'no-cors',
                 body : 'clicked'

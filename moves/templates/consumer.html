@@ -7,31 +7,34 @@
     src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@5.0.0/bundles/stomp.umd.min.js"
 ></script>
 <script type="text/javascript">
-	document.addEventListener("DOMContentLoaded", function() {
-		const client = new StompJs.Client({
-			brokerURL : 'ws://localhost:12345',
-			debug : console.log.bind(console)
-		});
+	document.addEventListener("DOMContentLoaded",
+			function() {
+				const client = new StompJs.Client({
+					brokerURL : 'ws://localhost:{{ws_port}}',
+					debug : console.log.bind(console)
+				});
 
-		client.onConnect = function(frame) {
-			console.log('onConnect: %o', frame);
-		};
+				client.onConnect = function(frame) {
+					console.log('onConnect: %o', frame);
+				};
 
-		client.onStompError = function(frame) {
-			console.log('Broker reported error: ' + frame.headers['message']);
-			console.log('Additional details: ' + frame.body);
-		};
+				client.onStompError = function(frame) {
+					console.error('Broker reported error: '
+							+ frame.headers['message']);
+					console.error('Additional details: ' + frame.body);
+				};
 
-		client.activate();
+				client.activate();
 
-		var subscription = client.subscribe('/queue/test', function(message) {
-			console.log('got %o', message.body);
+				var subscription = client.subscribe('{{amq_queue}}', function(
+						message) {
+					console.log('got %o', message.body);
 
-			const li = document.createElement('li');
-			li.textContent = message.body;
-			document.querySelector('ul').appendChild(li);
-		});
-	});
+					const li = document.createElement('li');
+					li.textContent = message.body;
+					document.querySelector('ul').appendChild(li);
+				});
+			});
 </script>
 </head>
 <body>

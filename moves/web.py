@@ -10,11 +10,18 @@ class Web(Flask):
 
         @self.route('/')
         def index():
-            return render_template('index.html', port=configurations.REST_PORT)
+            return render_template('index.html')
+
+        @self.route('/favicon.ico')
+        def favicon():
+            return ''
 
         @self.route('/<path>')
         def web(path):
-            return render_template(path, port=configurations.REST_PORT)
+            return render_template(path,
+                                   rest_port=configurations.REST_PORT,
+                                   ws_port=configurations.WS_PORT,
+                                   amq_queue=configurations.AMQ_QUEUE)
 
     def run(self):
         return super().run(port=configurations.WEB_PORT)
