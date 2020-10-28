@@ -19,9 +19,11 @@ class Web(Flask):
         @self.route('/<path>')
         def web(path):
             return render_template(path,
+                                   rest_hostname=configurations.REST_HOSTNAME,
                                    rest_port=configurations.REST_PORT,
                                    stomp_port=configurations.STOMP_PORT,
                                    ws_port=configurations.WS_PORT,
+                                   amq_hostname=configurations.AMQ_HOSTNAME,
                                    amq_queue=configurations.AMQ_QUEUE)
 
     def run(self):

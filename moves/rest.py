@@ -1,5 +1,5 @@
 import chess
-import chess.engine
+from chess import engine
 from flask import Flask
 from flask import Response
 from flask import request
@@ -9,7 +9,7 @@ import stomp
 from . import configurations
 
 
-engine = chess.engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
 
 
 # TODO for now there is only one board, only one game, only one player
@@ -18,7 +18,7 @@ class Rest(Flask):
     def __init__(self):
         super().__init__(__name__)
         self.conn = stomp.Connection(
-            [('127.0.0.1', configurations.STOMP_PORT)])
+            [(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)])
         self.conn.connect(wait=True)
         self.board = chess.Board()
         self.cors = CORS(self)
@@ -40,9 +40,9 @@ class Rest(Flask):
                                    destination=configurations.AMQ_QUEUE)
                 else:
                     try:
-                        result = engine.play(
-                            self.board, chess.engine.Limit(time=0.1))
-                    except chess.engine.EngineError as e:
+                        result = stockfish.play(
+                            self.board, engine.Limit(time=0.1))
+                    except engine.EngineError as e:
                         self.conn.send(body=str(e),
                                        destination=configurations.AMQ_QUEUE)
                     else:

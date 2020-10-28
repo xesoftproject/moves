@@ -8,7 +8,7 @@
 		document.querySelector('button').addEventListener('click', function() {
 			const move = document.querySelector('input').value;
 
-			return fetch('http://localhost:{{rest_port}}/update', {
+			return fetch('http://{{rest_hostname}}:{{rest_port}}/update', {
 				method : 'POST',
 				body : move
 			}).then(function(response) {
