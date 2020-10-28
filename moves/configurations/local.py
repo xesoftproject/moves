@@ -19,6 +19,10 @@ STOMP_PORT = 61614
 # AMQ_HOSTNAME = 'localhost'
 AMQ_HOSTNAME = 'b-e05495a3-40d2-4782-b15d-2a9ae104e344-1.mq.eu-west-1.amazonaws.com'
 
+# the amq credentials
+AMQ_USERNAME = 'XesoftBroker'
+AMQ_PASSCODE = 'XesoftBroker'
+
 # "the" name of the queue (TODO: move to a dedicated queeue x user)
 AMQ_QUEUE = '/queue/test'
 

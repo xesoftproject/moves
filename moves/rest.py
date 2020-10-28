@@ -18,8 +18,9 @@ class Rest(Flask):
     def __init__(self):
         super().__init__(__name__)
         self.conn = stomp.Connection(
-            [(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)])
-        self.conn.connect(wait=True)
+            [(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)], use_ssl=True)
+        self.conn.connect(configurations.AMQ_USERNAME,
+                          configurations.AMQ_PASSCODE, wait=True)
         self.board = chess.Board()
         self.cors = CORS(self)
         self.config['CORS_HEADERS'] = 'Content-Type'

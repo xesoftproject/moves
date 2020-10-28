@@ -16,8 +16,7 @@ setup(name='moves',
       entry_points={
           'console_scripts': [
               'moves-web = moves.web:main',
-              'moves-rest = moves.rest:main',
-              'moves-push  = moves.push:main'
+              'moves-rest = moves.rest:main'
           ]
       },
       install_requires=[

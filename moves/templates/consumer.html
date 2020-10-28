@@ -12,7 +12,8 @@
 	function main() {
 		stompClient = new StompJs.Client({
 			connectHeaders : {
-
+				login : '{{amq_username}}',
+				passcode : '{{amq_passcode}}',
 			},
 			brokerURL : 'wss://{{amq_hostname}}:{{ws_port}}',
 			debug : function(str) {

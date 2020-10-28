@@ -24,6 +24,8 @@ class Web(Flask):
                                    stomp_port=configurations.STOMP_PORT,
                                    ws_port=configurations.WS_PORT,
                                    amq_hostname=configurations.AMQ_HOSTNAME,
+                                   amq_username=configurations.AMQ_USERNAME,
+                                   amq_passcode=configurations.AMQ_PASSCODE,
                                    amq_queue=configurations.AMQ_QUEUE)
 
     def run(self):
