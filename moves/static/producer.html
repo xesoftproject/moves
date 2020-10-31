@@ -3,22 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <title>big red button</title>
-<script type="text/javascript">
-	document.addEventListener("DOMContentLoaded", function() {
-		document.querySelector('button').addEventListener('click', function() {
-			const move = document.querySelector('input').value;
-
-			return fetch('http://{{rest_hostname}}:{{rest_port}}/update', {
-				method : 'POST',
-				body : move
-			}).then(function(response) {
-				return response.text();
-			}).then(function(data) {
-				document.querySelector('pre').textContent = data;
-			});
-		});
-	});
-</script>
+<script type="module" src="js/big-red-button.js"></script>
 </head>
 <body>
     <input value="e2e4">
