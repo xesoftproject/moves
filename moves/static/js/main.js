@@ -14,14 +14,20 @@ const init_table = async (player1, player2) => {
 	const game_id = await start_new_game();
 	console.log('game_id: %o', game_id);
 
+	const ul = document.querySelector('ul');
+	while (ul.firstChild)
+		ul.removeChild(ul.firstChild);
+
 	document.querySelector('h3').textContent = game_id;
 
 	await subscribe(game_id, ({ move, table }) => {
 		document.querySelector('pre').textContent = table;
 
-		const li = document.createElement('li');
-		li.textContent = move;
-		document.querySelector('ul').appendChild(li);
+		if (move) {
+			const li = document.createElement('li');
+			li.textContent = move;
+			ul.appendChild(li);
+		}
 	});
 
 	return game_id;
@@ -32,15 +38,22 @@ const init_table = async (player1, player2) => {
  */
 const btn_move = (game_id) => {
 	const btn = document.querySelector('#move');
+
 	if (btn.__cb)
-		btn.removeEventListener('click', __cb);
-	const cb = async () => {
+		btn.removeEventListener('click', btn.__cb);
+
+	btn.__cb = async () => {
 		const move = document.querySelector('[type=text]').value;
 
-		await update(game_id, move);
+		try {
+			await update(game_id, move);
+		}
+		catch (e) {
+			alert(e);
+		}
 	};
-	btn.addEventListener('click', cb);
-	btn.__cb = cb;
+
+	btn.addEventListener('click', btn.__cb);
 };
 
 const btn_start_new_game = async () => {

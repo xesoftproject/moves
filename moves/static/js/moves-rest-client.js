@@ -9,19 +9,31 @@ const basename = `http://${rest_hostname}:${rest_port}`
 const update = async (game_id, move) => {
 	const response = await fetch(`${basename}/update`, {
 		method: 'POST',
-		body: {
+		body: JSON.stringify({
 			game_id: game_id,
 			move: move
+		}),
+		headers: {
+			'Content-Type': 'application/json'
 		}
 	});
+
+	if (!response.ok)
+		throw new Error(await response.text());
 
 	return await response.text();
 };
 
 const start_new_game = async () => {
 	const response = await fetch(`${basename}/start_new_game`, {
-		method: 'POST'
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		}
 	});
+
+	if (!response.ok)
+		throw new Error(await response.text());
 
 	return await response.text();
 };
