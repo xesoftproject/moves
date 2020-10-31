@@ -1,4 +1,4 @@
-import { update } from './moves-rest-client';
+import { update } from './moves-rest-client.js';
 
 const main = () => {
 	document.addEventListener("DOMContentLoaded", () => {

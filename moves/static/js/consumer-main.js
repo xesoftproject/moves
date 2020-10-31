@@ -1,4 +1,4 @@
-import { subscribe } from './moves-stomp-client';
+import { subscribe } from './moves-stomp-client.js';
 
 const main = () => {
 	document.addEventListener("DOMContentLoaded", () => {
