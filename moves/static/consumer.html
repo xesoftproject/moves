@@ -2,43 +2,9 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>big red button</title>
-<script type="text/javascript" src="js/lib/stomp.umd.min.js"></script>
-<script type="text/javascript">
-	let stompClient;
-
-	function main() {
-		stompClient = new StompJs.Client({
-			connectHeaders : {
-				login : '{{amq_username}}',
-				passcode : '{{amq_passcode}}',
-			},
-			brokerURL : 'wss://{{amq_hostname}}:{{ws_port}}',
-			debug : function(str) {
-				console.log('STOMP: ' + str);
-			},
-			reconnectDelay : 200,
-			onConnect : function(frame) {
-				console.log('onConnect: %o', frame);
-
-				this.subscribe('{{amq_queue}}', function(message) {
-					console.log('got %o', message.body);
-
-					const li = document.createElement('li');
-					li.textContent = message.body;
-					document.querySelector('ul').appendChild(li);
-
-					message.ack();
-				}, {
-					ack : 'client'
-				});
-			}
-		});
-		stompClient.activate();
-	}
-
-	document.addEventListener("DOMContentLoaded", main);
-</script>
+<title>consumer</title>
+<link rel="icon" type="image/png" href="img/xesoft.png">
+<script type="module" src="js/consumer-main.js"></script>
 </head>
 <body>
     <ul>
