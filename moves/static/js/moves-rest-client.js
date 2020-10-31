@@ -2,10 +2,17 @@ import { rest_hostname, rest_port } from './configuration.js';
 
 const basename = `http://${rest_hostname}:${rest_port}`
 
-const update = async (move) => {
+/**
+ * @param {string} game_id
+ * @param {string} move
+ */
+const update = async (game_id, move) => {
 	const response = await fetch(`${basename}/update`, {
 		method: 'POST',
-		body: move
+		body: {
+			game_id: game_id,
+			move: move
+		}
 	});
 
 	return await response.text();
