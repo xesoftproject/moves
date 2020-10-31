@@ -4,26 +4,43 @@
 <meta charset="utf-8" />
 <title>xesoft chess</title>
 <link rel="icon" type="image/png" href="img/xesoft.png">
-<script type="module" src="js/main-game.js"></script>
+<link rel="stylesheet" type="text/css" href="css/index.css" />
+<script type="module" src="js/main.js"></script>
 </head>
 <body>
+    <h2>Simulazione comandi vocali</h2>
     <dl>
-        <dt>player 1 - TODO</dt>
+        <dt>start new game</dt>
         <dd>
-            <input type="radio" name="player1" value="human"
-                checked="checked"
-            /> <input type="radio" name="player1" value="cpu" />
+            <p>
+                <span>player 1 - TODO</span><input type="radio"
+                    name="player1" value="human" checked="checked"
+                /><input type="radio" name="player1" value="cpu" />
+            </p>
+            <p>
+                <span>player 2 - TODO</span><input type="radio"
+                    name="player2" value="human"
+                /><input type="radio" name="player2" value="human"
+                    checked="checked"
+                />
+            </p>
+            <p>
+                <button>start new game</button>
+            </p>
+        <dt>human move</dt>
+        <dd>
+            <p>
+                <input value="e2e4">
+            </p>
+            <p>
+                <button>Big red button</button>
+            </p>
         </dd>
-        <dt>player 2 - TODO</dt>
-        <dd>
-            <input type="radio" name="player2" value="human" /> <input
-                type="radio" name="player2" value="human"
-                checked="checked"
-            />
-        </dd>   
-        <dt>
-            <button>start new game</button>
-        </dt>
     </dl>
+    <hr />
+    <h2>Partita</h2>
+    <pre></pre>
+    <ul>
+    </ul>
 </body>
 </html>
