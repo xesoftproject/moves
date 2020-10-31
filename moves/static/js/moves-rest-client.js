@@ -8,9 +8,15 @@ const update = async (move) => {
 		body: move
 	});
 
-	const data = await response.text();
-
-	return data;
+	return await response.text();
 };
 
-export { update };
+const start_new_game = async () => {
+	const response = await fetch(`${basename}/start_new_game`, {
+		method: 'POST'
+	});
+
+	return await response.text();
+};
+
+export { update, start_new_game };
