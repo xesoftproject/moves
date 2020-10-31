@@ -1,4 +1,4 @@
-import { StompJs } from './lib/stomp.umd.min.js';
+import './lib/stomp.umd.min.js';
 
 import { amq_username, amq_passcode, amq_hostname, ws_port, amq_queue } from './configuration.js';
 
@@ -11,14 +11,14 @@ const subscribe = (on_message) => {
 			passcode: amq_passcode,
 		},
 		brokerURL: `wss://${amq_hostname}:${ws_port}`,
-		debug: function(str) {
+		debug: (str) => {
 			console.log('STOMP: ' + str);
 		},
 		reconnectDelay: 200,
 		onConnect: (frame) => {
 			console.log('onConnect: %o', frame);
 
-			this.subscribe(amq_queue, (message) => {
+			stompClient.subscribe(amq_queue, (message) => {
 				console.log('got %o', message.body);
 
 				on_message(message.body);
