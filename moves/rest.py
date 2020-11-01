@@ -96,7 +96,7 @@ class Rest(Flask):
             return Response('human-cpu step done', mimetype='text/plain')
 
     def run(self):
-        return super().run(port=configurations.REST_PORT)
+        return super().run(host='0.0.0.0', port=configurations.REST_PORT)
 
 
 def main():
