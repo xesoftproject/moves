@@ -1,26 +1,12 @@
 # simple moves rest server
 
-rest endpoint that convert to push notifications to apache activemq (amazon-mq)
-+ a simple demo of web subscription using stomp.js
+rest endpoint that exposes user actions and send push notifications to amazon-mq
++ a simple demo of web game
 
-![Esempio](moves.png)
 
 ## install - prerequisities
 
-to avoid using amazon-mq, you need a local running apache active-mq. Get it from
-<http://activemq.apache.org/components/classic/download/>
-
-for the ease of testing, change the port: open
-`apache-activemq-5.16.0\conf\activemq.xml` and change the `stomp`
-and `ws` ports to `12346` and `12347`, as in:
-
-```xml
-<transportConnector name="stomp" uri="stomp://0.0.0.0:12346?maximumConnections=1000&amp;wireFormat.maxFrameSize=104857600"/>
-<transportConnector name="ws" uri="ws://0.0.0.0:12347?maximumConnections=1000&amp;wireFormat.maxFrameSize=104857600"/>
-```
-
-
-to play chess you need also a chess engine, like stockfish. get it from
+To play chess you need a chess engine, like stockfish. Get it from
 <https://stockfishchess.org/download/>
 
 
@@ -36,7 +22,7 @@ python -mpip install path\to\moves
 
 ```sh
 python -mvenv VENV
-. VENV/Script/Activate
+. VENV/bin/activate
 python -mpip install path/to/moves 
 ```
 
@@ -47,11 +33,7 @@ python -mpip install path/to/moves
 
 ## run the P.O.C. locally
 
-open 3 terminals and run
-
-```bat
-apache-activemq-5.16.0\bin\activemq start
-```
+open 2 terminals and run
 
 ```bat
 moves-rest
@@ -63,19 +45,18 @@ moves-web
 
 then point the browser to <http://localhost:8080/>
 
-when you click on "Big red button" a list item should appear on the right side.
+You should see a simple web page with a way to play chess.
+You can start a new game, then a chess board should appair.
+You are the white, you start. Choose your move and click on move to make a move
+Your move, and then the cpu one, appears below the chess table.
 
-what has happened?
+What has happened?
 
-the button "emulates" `transcribe`, that will call the `moves-rest` api
-to send the inferred speech.
+The buttons "emulates" `transcribe` interactions, that will call the
+`moves-rest` api to send the inferred speech.
 
 the rest api talk to the chess engine and calculate the next move.
 
-The "next move" is sent to an active-mq queue.
+All the moves are sent to an active-mq queue.
 
-The "right side" is listening on the same queue, and will show the output.
-
-
-(missing: the listening is a piece movement, and should be interpreted)
-
+The page is is listening on the same queue, and will show the output.
