@@ -9,8 +9,7 @@ from . import configurations
 class Web(Flask):
     def __init__(self):
         super().__init__(__name__,
-                         static_url_path='/',
-                         static_folder=f'{__file__}/../static')
+                         static_url_path='/')
 
         @self.route('/')
         def index():
