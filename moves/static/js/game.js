@@ -37,8 +37,8 @@ const movement = (from, to) => {
  * @param {number} delta_y
  */
 const apply_move = (piece, delta_x, delta_y) => {
-	// the table is rotated of 270°
-	const x = piece.object3D.position.x - (delta_y * STEP);
+	// the table is rotated of 90°
+	const x = piece.object3D.position.x + (delta_y * STEP);
 	const y = piece.object3D.position.y
 	const z = piece.object3D.position.z + (delta_x * STEP);
 
@@ -50,6 +50,8 @@ const apply_move = (piece, delta_x, delta_y) => {
  * @param {{move: ?string, table: string}}
  */
 const move = ({ move }) => {
+	console.log('move: %o', move);
+
 	if (!move)
 		return;
 
