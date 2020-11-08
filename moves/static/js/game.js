@@ -49,8 +49,7 @@ const apply_move = (piece, delta_x, delta_y) => {
 /**
  * @param {{move: ?string, table: string}}
  */
-const move = ({ move, table }) => {
-	// TODO convert to use table ?
+const move = ({ move }) => {
 	if (!move)
 		return;
 
