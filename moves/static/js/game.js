@@ -1,5 +1,7 @@
 const STEP = .06;
+const GAME_ID = 'game_id';
 
+import { subscribe, unsubscribe } from './moves-stomp-client.js';
 
 /**
  * @param {string} from
@@ -57,8 +59,43 @@ const move = ({ move, table }) => {
 	apply_move(piece, delta_x, delta_y);
 };
 
-const init_pieces_position = () => {
-	setTimeout(move.bind(this, { move: 'e2e4' }), 5000);
+
+/**
+ * @param {Location} location
+ * return the query parameters as a multiset
+ */
+const queryparams = (location = window.location) => {
+	if (!location.search)
+		return {};
+
+	const ret = {};
+
+	const search = location.search.substr(1);
+	for (const [k, v] of search.split('&').map(kv => kv.split('=', 2))) {
+		if (k in ret)
+			ret[k].push(v);
+		else
+			ret[k] = [v];
+	}
+
+	return ret;
+}
+
+/**
+ * @param {Location} location
+ */
+const init_pieces_position = async (location = window.location) => {
+	// page requirement: ?game_id=xxx
+
+	const game_id = queryparams(location)[GAME_ID];
+	if (!game_id) {
+		location.replace('index.html?error=nogameid');
+		throw new Error();
+	}
+
+	console.log('game_id: %o', game_id);
+
+	await subscribe(game_id, move);
 };
 
 

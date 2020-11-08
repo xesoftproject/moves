@@ -11,7 +11,11 @@ import json
 import uuid
 
 
-stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+try:
+    stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+except:
+    print(f'configurations.STOCKFISH: {configurations.STOCKFISH}')
+    raise
 
 
 def amq_queue(game_id):
@@ -96,7 +100,9 @@ class Rest(Flask):
             return Response('human-cpu step done', mimetype='text/plain')
 
     def run(self):
-        return super().run(host='0.0.0.0', port=configurations.REST_PORT)
+        return super().run(host='0.0.0.0',
+                           port=configurations.REST_PORT,
+                           ssl_context='adhoc')
 
 
 def main():
