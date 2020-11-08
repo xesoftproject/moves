@@ -66,9 +66,9 @@ const move = ({ move }) => {
 /**
  * @param {Location} location
  */
-const init = async (location = window.location) => {
+const init = async () => {
 	// page requirement: ?game_id=xxx
-	const game_id = queryparams(location)[GAME_ID][0];
+	const game_id = queryparams()[GAME_ID][0];
 	if (!game_id) {
 		location.replace('index.html?error=nogameid');
 		throw new Error();
@@ -81,7 +81,7 @@ const init = async (location = window.location) => {
 
 
 const main = () => {
-	document.addEventListener('DOMContentLoaded', init);
+	document.addEventListener('DOMContentLoaded', init.bind(undefined));
 };
 
 
