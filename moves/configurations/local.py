@@ -27,4 +27,4 @@ AMQ_PASSCODE = 'XesoftBroker'
 AMQ_QUEUE = '/queue/test'
 
 # stockfish executable path (if not in $PATH)
-STOCKFISH = '/Users/vito.detullio/Desktop/bu media contest/stockfish_12_win_x64_bmi2/stockfish_20090216_x64_bmi2.exe'
+STOCKFISH = '/Users/vito.detullio/Desktop/work-e570/bu media contest/stockfish_12_win_x64_bmi2/stockfish_20090216_x64_bmi2.exe'

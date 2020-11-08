@@ -42,7 +42,7 @@ const subscribe = async (game_id, on_message) => {
 
 	const stompClient = await connect();
 
-	subscription = stompClient.subscribe(amq_queue(game_id), (message) => {
+	subscription = stompClient.subscribe(`/topic/${amq_queue(game_id)}`, (message) => {
 		on_message(JSON.parse(message.body));
 	});
 };

@@ -11,7 +11,11 @@ import json
 import uuid
 
 
-stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+try:
+    stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+except:
+    print(f'configurations.STOCKFISH: {configurations.STOCKFISH}')
+    raise
 
 
 def amq_queue(game_id):
@@ -41,7 +45,7 @@ class Rest(Flask):
             self.conn.send(body=json.dumps({
                 'move': '',
                 'table': str(board)
-            }), destination=amq_queue(game_id))
+            }), destination=f'/topic/{amq_queue(game_id)}')
 
             return game_id
 
@@ -65,14 +69,14 @@ class Rest(Flask):
                 self.conn.send(body=json.dumps({
                     'move': move,
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
 
             # check if is ended
             if board.is_game_over():
                 self.conn.send(body=json.dumps({
                     'move': 'GAME OVER',
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
                 return Response('GAME OVER', mimetype='text/plain')
 
             # ask for the cpu move
@@ -90,13 +94,15 @@ class Rest(Flask):
                 self.conn.send(body=json.dumps({
                     'move': result.move.uci(),
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
 
             # return the board after the updates
             return Response('human-cpu step done', mimetype='text/plain')
 
     def run(self):
-        return super().run(host='0.0.0.0', port=configurations.REST_PORT)
+        return super().run(host='0.0.0.0',
+                           port=configurations.REST_PORT,
+                           ssl_context='adhoc')
 
 
 def main():

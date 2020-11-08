@@ -37,6 +37,7 @@ setuptools.setup(name='moves',
                      'Flask',
                      'stomp.py',
                      'python-chess',
-                     'flask-cors'
+                     'flask-cors',
+                     'pyopenssl'
                  ],
                  package_data={'moves': moves_package_data()})
