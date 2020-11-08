@@ -45,7 +45,7 @@ class Rest(Flask):
             self.conn.send(body=json.dumps({
                 'move': '',
                 'table': str(board)
-            }), destination=amq_queue(game_id))
+            }), destination=f'/topic/{amq_queue(game_id)}')
 
             return game_id
 
@@ -69,14 +69,14 @@ class Rest(Flask):
                 self.conn.send(body=json.dumps({
                     'move': move,
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
 
             # check if is ended
             if board.is_game_over():
                 self.conn.send(body=json.dumps({
                     'move': 'GAME OVER',
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
                 return Response('GAME OVER', mimetype='text/plain')
 
             # ask for the cpu move
@@ -94,7 +94,7 @@ class Rest(Flask):
                 self.conn.send(body=json.dumps({
                     'move': result.move.uci(),
                     'table': str(board)
-                }), destination=amq_queue(game_id))
+                }), destination=f'/topic/{amq_queue(game_id)}')
 
             # return the board after the updates
             return Response('human-cpu step done', mimetype='text/plain')
