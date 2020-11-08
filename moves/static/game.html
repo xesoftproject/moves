@@ -2,57 +2,63 @@
 <head>
 <meta charset="utf-8" />
 <link rel="icon" type="image/png" href="img/xesoft.png">
-<script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+<script src="js/lib/aframe.min.js"></script>
 </head>
 <body>
 <a-scene debug>
     <a-assets>
-        <!-- TODO: there should be white/black pieces -->
-        <a-asset-item id="bishop" src="asset/bishop.gltf" />
-        <a-asset-item id="knight" src="asset/knight.gltf" />
-        <a-asset-item id="pawn" src="asset/pawn.gltf" />
-        <a-asset-item id="king" src="asset/king.gltf" />
-        <a-asset-item id="queen" src="asset/queen.gltf" />
-        <a-asset-item id="rook" src="asset/rook.gltf" />
+        <a-asset-item id="tablemodel" src="asset/Chess_Base.gltf" />
+
+        <a-asset-item id="whitebishopmodel" src="asset/white_chess_alfiere.gltf" />
+        <a-asset-item id="whiteknightmodel" src="asset/white_chess_horse.gltf" />
+        <a-asset-item id="whitepawn" src="asset/white_chess_pedone.gltf" />
+        <a-asset-item id="whitekingmodel" src="asset/white_chess_king.gltf" />
+        <a-asset-item id="whitequeenmodel" src="asset/white_chess_queen.gltf" />
+        <a-asset-item id="whiterookmodel" src="asset/white_chess_tower.gltf" />
+
+        <a-asset-item id="blackbishopmodel" src="asset/black_chess_alfiere.gltf" />
+        <a-asset-item id="blackknightmodel" src="asset/black_chess_horse.gltf" />
+        <a-asset-item id="blackpawnmodel" src="asset/black_chess_pedone.gltf" />
+        <a-asset-item id="blackkingmodel" src="asset/black_chess_king.gltf" />
+        <a-asset-item id="blackqueenmodel" src="asset/black_chess_queen.gltf" />
+        <a-asset-item id="blackrookmodel" src="asset/black_chess_tower.gltf" />
     </a-assets>
 
-    <!-- TODO: there should be table pieces -->
-    <a-box color="tomato" width="8" height="1" depth="8" position="0 0 -6"></a-box>
+    <a-entity gltf-model="#tablemodel" id="table" position="0 0 -2" scale="5 5 5">
+        <a-entity gltf-model="#whiterookmodel" id="whiterooka" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whiteknightmodel" id="whiteknightb" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitebishopmodel" id="whitebishopc" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitequeenmodel" id="whitequeen" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitekingmodel" id="whiteking" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitebishopmodel" id="whitebishopf" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whiteknightmodel" id="whiteknightg" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whiterookmodel" id="whiterookh" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawna" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawnb" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawnc" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawnd" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawne" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawnf" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawng" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#whitepawnmodel" id="whitepawnh" position="0 0 0"></a-entity>
 
-    <a-entity gltf-model="#rook" id="whiterooka" position="-4 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#knight" id="whiteknightb" position="-3 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#bishop" id="whitebishopc" position="-2 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#queen" id="whitequeen" position="-1 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#king" id="whiteking" position="0 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#bishop" id="whitebishopf" position="1 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#knight" id="whiteknightg" position="2 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#rook" id="whiterookh" position="3 .5 -3" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawna" position="-4 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawnb" position="-3 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawnc" position="-2 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawnd" position="-1 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawne" position="0 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawnf" position="1 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawng" position="2 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="whitepawnh" position="3 .5 -2" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-
-    <a-entity gltf-model="#rook" id="blackrooka" position="-4 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#knight" id="blackknightb" position="-3 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#bishop" id="blackbishopc" position="-2 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#queen" id="blackqueen" position="-1 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#king" id="blackking" position="0 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#bishop" id="blackbishopf" position="1 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#knight" id="blackknightg" position="2 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#rook" id="blackrookh" position="3 .5 -10" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawna" position="-4 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawnb" position="-3 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawnc" position="-2 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawnd" position="-1 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawne" position="0 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawnf" position="1 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawng" position="2 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-    <a-entity gltf-model="#pawn" id="blackpawnh" position="3 .5 -9" scale=".02 .02 .02" rotation="270 0 0"></a-entity>
-
+        <a-entity gltf-model="#blackrookmodel" id="blackrooka" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackknightmodel" id="blackknightb" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackbishopmodel" id="blackbishopc" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackqueenmodel" id="blackqueen" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackkingmodel" id="blackking" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackbishopmodel" id="blackbishopf" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackknightmodel" id="blackknightg" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackrookmodel" id="blackrookh" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawna" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawnb" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawnc" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawnd" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawne" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawnf" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawng" position="0 0 0"></a-entity>
+        <a-entity gltf-model="#blackpawnmodel" id="blackpawnh" position="0 0 0"></a-entity>
+    </a-entity>
 </a-scene>
 </body>
 </html>
