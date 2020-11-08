@@ -29,7 +29,9 @@ class Web(Flask):
                             mimetype='application/javascript; charset=utf-8')
 
     def run(self):
-        return super().run(host='0.0.0.0', port=configurations.WEB_PORT)
+        return super().run(host='0.0.0.0',
+                           port=configurations.WEB_PORT,
+                           ssl_context='adhoc')
 
 
 def main():
