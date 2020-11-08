@@ -1,7 +1,8 @@
 const STEP = .06;
-const GAME_ID = 'game_id';
 
-import { subscribe, unsubscribe } from './moves-stomp-client.js';
+import { subscribe } from './moves-stomp-client.js';
+import { queryparams } from './commons.js'
+import { GAME_ID } from './constants.js';
 
 /**
  * @param {string} from
@@ -10,6 +11,7 @@ import { subscribe, unsubscribe } from './moves-stomp-client.js';
 const lookup = (from) => {
 	return document.querySelector(`[square="${from}"]`);
 };
+
 
 /**
  * @param {string} from
@@ -28,6 +30,7 @@ const movement = (from, to) => {
 	};
 };
 
+
 /**
  * @param {Element} piece
  * @param {number} delta_x
@@ -41,6 +44,7 @@ const apply_move = (piece, delta_x, delta_y) => {
 
 	piece.setAttribute('animation', `property: position; dur: 500; to: ${x} ${y} ${z}`);
 };
+
 
 /**
  * @param {{move: ?string, table: string}}
@@ -62,32 +66,10 @@ const move = ({ move, table }) => {
 
 /**
  * @param {Location} location
- * return the query parameters as a multiset
  */
-const queryparams = (location = window.location) => {
-	if (!location.search)
-		return {};
-
-	const ret = {};
-
-	const search = location.search.substr(1);
-	for (const [k, v] of search.split('&').map(kv => kv.split('=', 2))) {
-		if (k in ret)
-			ret[k].push(v);
-		else
-			ret[k] = [v];
-	}
-
-	return ret;
-}
-
-/**
- * @param {Location} location
- */
-const init_pieces_position = async (location = window.location) => {
+const init = async (location = window.location) => {
 	// page requirement: ?game_id=xxx
-
-	const game_id = queryparams(location)[GAME_ID];
+	const game_id = queryparams(location)[GAME_ID][0];
 	if (!game_id) {
 		location.replace('index.html?error=nogameid');
 		throw new Error();
@@ -100,7 +82,8 @@ const init_pieces_position = async (location = window.location) => {
 
 
 const main = () => {
-	document.addEventListener('DOMContentLoaded', init_pieces_position);
+	document.addEventListener('DOMContentLoaded', init);
 };
+
 
 main();
