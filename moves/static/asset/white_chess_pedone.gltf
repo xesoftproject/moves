@@ -15,23 +15,18 @@
     "nodes" : [
         {
             "mesh" : 0,
-            "name" : "Pawn.004",
-            "translation" : [
-                -0.030000001192092896,
-                0,
-                -0.14999999105930328
-            ]
+            "name" : "Pawn.008"
         }
     ],
     "materials" : [
         {
             "doubleSided" : true,
             "emissiveFactor" : [
-                0,
-                0,
-                0
+                0.09462963044643402,
+                0.09462963044643402,
+                0.09462963044643402
             ],
-            "name" : "Black Pieces",
+            "name" : "Black Pieces.003",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
                     1,
@@ -46,7 +41,7 @@
     ],
     "meshes" : [
         {
-            "name" : "Cylinder.001",
+            "name" : "Cylinder.017",
             "primitives" : [
                 {
                     "attributes" : {

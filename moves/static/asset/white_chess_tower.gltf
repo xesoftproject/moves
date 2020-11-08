@@ -15,23 +15,33 @@
     "nodes" : [
         {
             "mesh" : 0,
-            "name" : "Rook",
-            "rotation" : [
-                0,
-                0.19509033858776093,
-                0,
-                0.9807852506637573
+            "name" : "Rook.003"
+        }
+    ],
+    "materials" : [
+        {
+            "doubleSided" : true,
+            "emissiveFactor" : [
+                0.09462963044643402,
+                0.09462963044643402,
+                0.09462963044643402
             ],
-            "translation" : [
-                0.20999999344348907,
-                0,
-                -0.20999999344348907
-            ]
+            "name" : "Black Pieces",
+            "pbrMetallicRoughness" : {
+                "baseColorFactor" : [
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                "metallicFactor" : 0,
+                "roughnessFactor" : 0.41477271914482117
+            }
         }
     ],
     "meshes" : [
         {
-            "name" : "Cylinder.007",
+            "name" : "Cylinder.010",
             "primitives" : [
                 {
                     "attributes" : {
@@ -39,7 +49,8 @@
                         "NORMAL" : 1,
                         "TEXCOORD_0" : 2
                     },
-                    "indices" : 3
+                    "indices" : 3,
+                    "material" : 0
                 }
             ]
         }
