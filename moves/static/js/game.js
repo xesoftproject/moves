@@ -32,9 +32,10 @@ const movement = (from, to) => {
  * @param {number} delta_y
  */
 const apply_move = (piece, delta_x, delta_y) => {
-	const x = piece.object3D.position.x + (delta_x * STEP);
+	// the table is rotated of 270°
+	const x = piece.object3D.position.x - (delta_y * STEP);
 	const y = piece.object3D.position.y
-	const z = piece.object3D.position.z + (delta_y * STEP);
+	const z = piece.object3D.position.z + (delta_x * STEP);
 
 	piece.setAttribute('animation', `property: position; dur: 500; to: ${x} ${y} ${z}`);
 };
