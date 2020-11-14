@@ -2,7 +2,7 @@
 WEB_PORT = 8080
 
 # the rest hostname
-REST_HOSTNAME = 'ec2-54-77-180-233.eu-west-1.compute.amazonaws.com'
+REST_HOSTNAME = 'ec2-54-229-191-160.eu-west-1.compute.amazonaws.com'
 
 # rest server port (where the POST goes)
 REST_PORT = 5000
