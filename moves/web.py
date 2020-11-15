@@ -4,10 +4,12 @@ from flask import current_app
 from flask import Response
 
 from . import configurations
+from . import logs
 
 
 class Web(Flask):
     def __init__(self):
+        logs.setup_logs()
         super().__init__(__name__,
                          static_url_path='/')
 
