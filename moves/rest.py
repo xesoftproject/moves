@@ -7,14 +7,19 @@ from flask_cors import CORS, cross_origin
 import stomp
 
 from . import configurations
+from . import logs
+
 import json
 import uuid
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 
 try:
     stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
 except:
-    print(f'configurations.STOCKFISH: {configurations.STOCKFISH}')
+    LOGGER.error(f'configurations.STOCKFISH: {configurations.STOCKFISH}')
     raise
 
 
@@ -24,6 +29,7 @@ def amq_queue(game_id):
 
 class Rest(Flask):
     def __init__(self):
+        logs.setup_logs()
         super().__init__(__name__)
         self.conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
                                        configurations.STOMP_PORT)],
