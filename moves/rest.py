@@ -19,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 try:
     stockfish = engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
 except:
-    LOGGER.error(f'configurations.STOCKFISH: {configurations.STOCKFISH}')
+    LOGGER.error('configurations.STOCKFISH: %s', configurations.STOCKFISH)
     raise
 
 

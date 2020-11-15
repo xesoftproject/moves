@@ -1,12 +1,13 @@
 import os
 import glob
 import setuptools
+import typing
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
 
-def moves_package_data():
+def moves_package_data() -> typing.List[str]:
     cwd = os.getcwd()
     os.chdir('moves')
     try:
