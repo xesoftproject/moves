@@ -41,7 +41,10 @@ class MemorySendChannel(typing.Generic[T]):
         for send_channel in self._send_channels:
             await send_channel.aclose()
 
-def open_memory_channel_tee(*args) -> typing.Tuple[MemorySendChannel[T], trio.MemoryReceiveChannel[T], trio.MemoryReceiveChannel[T]]:
+
+def open_memory_channel_tee(cls: typing.Type[T],
+                            *args
+                            ) -> typing.Tuple[MemorySendChannel[T], trio.MemoryReceiveChannel[T], trio.MemoryReceiveChannel[T]]:
     output_send1, output_receive1 = trio.open_memory_channel[T](*args)
     output_send2, output_receive2 = trio.open_memory_channel[T](*args)
 

@@ -8,6 +8,9 @@ import chess
 import trio
 
 from . import types
+from .. import autils
+
+
 
 
 LOGS = logging.getLogger(__name__)
@@ -58,7 +61,7 @@ def handle(games: typing.Dict[str, types.GameUniverse],
 
 
 async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueElement],
-                      output_send: trio.MemorySendChannel[types.OutputQueueElement]
+                      output_send: typing.Union[trio.MemorySendChannel[types.OutputQueueElement], autils.MemorySendChannel[types.OutputQueueElement]]
                       ) -> None:
     async with input_receive, output_send:
         LOGS.info('game_engine')
