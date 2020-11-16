@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 
@@ -14,6 +16,8 @@ LOGS = logging.getLogger(__name__)
 async def amq_client(output_receive: trio.MemoryReceiveChannel[types.OutputQueueElement]
                      ) -> None:
     async with output_receive:
+        LOGS.info('amq_client')
+
         conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
                                   configurations.STOMP_PORT)],
                                 use_ssl=True)

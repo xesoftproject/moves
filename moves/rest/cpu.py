@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import typing
 
@@ -51,6 +53,8 @@ async def cpu(input_send: trio.MemorySendChannel[types.InputQueueElement],
               output_receive: trio.MemoryReceiveChannel[types.OutputQueueElement]
               ) -> None:
     async with input_send, output_receive:
+        LOGS.info('cpu')
+
         try:
             engine = chess.engine.SimpleEngine.popen_uci(
                 configurations.STOCKFISH)
@@ -60,6 +64,8 @@ async def cpu(input_send: trio.MemorySendChannel[types.InputQueueElement],
             raise
 
         async for output_element in output_receive:
+            LOGS.info('output_element: %s', output_element)
+
             try:
                 input_elements = handle(engine, output_element)
             except Exception:

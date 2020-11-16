@@ -8,11 +8,17 @@ from .cpu import cpu
 from .game_engine import game_engine
 from .rest import rest
 
+import logging
+
+LOGS = logging.Logger(__name__)
+
 
 async def parent() -> None:
     async with trio.open_nursery() as nursery:
-        (input_send, input_receive) = trio.open_memory_channel[types.InputQueueElement](0)
-        (output_send, output_receive) = trio.open_memory_channel[types.OutputQueueElement](0)
+        input_send, input_receive = trio.open_memory_channel[types.InputQueueElement](0)
+        output_send, output_receive = trio.open_memory_channel[types.OutputQueueElement](0)
+
+        LOGS.info('parent')
 
         async with input_send, input_receive, output_send, output_receive:
             # game engine

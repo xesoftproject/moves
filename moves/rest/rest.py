@@ -1,14 +1,19 @@
+from __future__ import annotations
+
 import logging
 
 import trio
+
 from . import types
 
-LOGS = logging.getLogger(__name__)
 
+LOGS = logging.getLogger(__name__)
 
 async def rest(input_send: trio.MemorySendChannel[types.InputQueueElement]
                ) -> None:
     async with input_send:
+        LOGS.info('rest')
+
         # TODO: make a *real* rest server
 
         # this is what should happen when a "new game" endpoint is called

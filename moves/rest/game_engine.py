@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import typing
 import uuid
@@ -6,6 +8,7 @@ import chess
 import trio
 
 from . import types
+
 
 LOGS = logging.getLogger(__name__)
 
@@ -58,10 +61,14 @@ async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueE
                       output_send: trio.MemorySendChannel[types.OutputQueueElement]
                       ) -> None:
     async with input_receive, output_send:
+        LOGS.info('game_engine')
+
         # mutable multiverse
         games: typing.Dict[str, types.GameUniverse] = {}
 
         async for input_element in input_receive:
+            LOGS.info('input_element: %s', input_element)
+
             try:
                 output_elements = handle(games, input_element)
             except Exception:
