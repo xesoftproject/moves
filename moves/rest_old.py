@@ -5,6 +5,8 @@ from flask import Response
 from flask import request
 from flask_cors import CORS, cross_origin
 import stomp
+import quart_trio
+
 
 from . import configurations
 from . import logs
@@ -112,4 +114,21 @@ class Rest(Flask):
 
 
 def main():
-    Rest().run()
+    logs.setup_logs()
+    app = quart_trio.QuartTrio(__name__)
+    conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
+                              configurations.STOMP_PORT)],
+                              use_ssl=True)
+    conn.connect(configurations.AMQ_USERNAME,
+                 configurations.AMQ_PASSCODE,
+                 wait=True)
+
+    app.cors = CORS(app)
+    app.config['CORS_HEADERS'] = 'Content-Type'
+    boards = {}
+
+    @app.route('/')
+    async def hello():
+        return 'hello'
+
+    

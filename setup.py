@@ -31,7 +31,7 @@ setuptools.setup(name='moves',
                  entry_points={
                      'console_scripts': [
                          'moves-web = moves.web:main',
-                         'moves-rest = moves.rest:main'
+                         'moves-rest = moves.rest_old:main'
                      ]
                  },
                  install_requires=[
@@ -39,6 +39,8 @@ setuptools.setup(name='moves',
                      'stomp.py',
                      'python-chess',
                      'flask-cors',
-                     'pyopenssl'
+                     'pyopenssl',
+                     'quart-trio',
+                     'trio-typing'
                  ],
                  package_data={'moves': moves_package_data()})
