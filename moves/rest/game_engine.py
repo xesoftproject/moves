@@ -1,20 +1,16 @@
 import logging
-import queue
 import typing
 import uuid
 
 import chess
-import chess.engine
 import trio
 
-from .. import configurations
 from . import types
 
 LOGS = logging.getLogger(__name__)
 
 
-def handle(engine: chess.engine.SimpleEngine,
-           games: typing.Dict[str, types.GameUniverse],
+def handle(games: typing.Dict[str, types.GameUniverse],
            input_element: types.InputQueueElement
            ) -> typing.Iterator[types.OutputQueueElement]:
     LOGS.info('input_element: %s', input_element)
@@ -25,64 +21,51 @@ def handle(engine: chess.engine.SimpleEngine,
         white = typing.cast(types.Player, input_element.white)
         black = typing.cast(types.Player, input_element.black)
 
-        game = types.GameUniverse(game_id=game_id,
-                                  board=board,
-                                  white=white,
-                                  black=black)
+        game_universe = types.GameUniverse(game_id=game_id,
+                                           board=board,
+                                           white=white,
+                                           black=black)
 
-        games[game_id] = game
+        games[game_id] = game_universe
 
-        yield types.OutputQueueElement(game_id=game_id,
-                                       result=types.Result.GAME_CREATED,
-                                       board=game.board)
+        yield types.OutputQueueElement(result=types.Result.GAME_CREATED,
+                                       game_universe=game_universe)
 
         return
 
     if input_element.command == types.Command.END_GAME:
         raise NotImplementedError()
-    
+
     if input_element.command == types.Command.MOVE:
         game_id = typing.cast(str, input_element.game_id)
 
-        game = games[game_id]
+        game_universe = games[game_id]
         move = typing.cast(str, input_element.move)
         try:
-            game.board.push(game.board.parse_uci(move))
+            game_universe.board.push(game_universe.board.parse_uci(move))
         except (AssertionError, ValueError) as e:
-            yield types.OutputQueueElement(game_id=game_id,
-                                           result=types.Result.ERROR,
-                                           board=game.board,
+            LOGS.exception('invalid move: %s', move)
+            yield types.OutputQueueElement(result=types.Result.ERROR,
+                                           game_universe=game_universe,
                                            error=e)
         else:
-            yield types.OutputQueueElement(game_id=game_id,
-                                           result=types.Result.MOVE,
-                                           board=game.board,
+            yield types.OutputQueueElement(result=types.Result.MOVE,
+                                           game_universe=game_universe,
                                            move=move)
 
 
-async def game_engine(input_queue: queue.Queue, output_queue: queue.Queue) -> None:
-    try:
-        engine = chess.engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
-    except:
-        LOGS.error('configurations.STOCKFISH: %s', configurations.STOCKFISH)
-        raise
+async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueElement],
+                      output_send: trio.MemorySendChannel[types.OutputQueueElement]
+                      ) -> None:
+    async with input_receive, output_send:
+        # mutable multiverse
+        games: typing.Dict[str, types.GameUniverse] = {}
 
-    games: typing.Dict[str, types.GameUniverse] = {}
-
-    while True:
-        await trio.sleep(0)
-        while True:
-            input_element: types.InputQueueElement
+        async for input_element in input_receive:
             try:
-                input_element = input_queue.get_nowait()
-            except queue.Empty:
-                break
+                output_elements = handle(games, input_element)
+            except Exception:
+                LOGS.exception('cannot handle %s - %s', input_element)
             else:
-                output_elements: typing.Iterator[types.OutputQueueElement]
-                try:
-                    output_elements = handle(engine, games, input_element)
-                except Exception as e:
-                    LOGS.error('cannot handle %s - %s', input_element, e)
-                else:
-                    for output_element in output_elements:
-                        output_queue.put_nowait(output_element)
+                for output_element in output_elements:
+                    await output_send.send(output_element)

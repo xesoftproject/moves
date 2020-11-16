@@ -56,12 +56,12 @@ class Result(enum.Enum):
     END_GAME = enum.auto()
     SUGGESTION = enum.auto()
 
+
 @dataclasses.dataclass
 class OutputQueueElement:
-    game_id: str
     result: Result
 
-    board: chess.Board
+    game_universe: GameUniverse
 
     # available only with result==ERROR
     error: typing.Optional[Exception] = None
