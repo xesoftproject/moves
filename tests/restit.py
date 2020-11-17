@@ -1,10 +1,10 @@
 from moves import rest
 import unittest
+import logging
 
-from moves import logs
 
 
 class RestIT(unittest.TestCase):
     def test_main(self):
-        logs.setup_logs()
+        logging.basicConfig(level=logging.INFO)
         rest.main()

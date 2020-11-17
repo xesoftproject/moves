@@ -55,9 +55,17 @@ def handle(games: typing.Dict[str, types.GameUniverse],
                                            game_universe=game_universe,
                                            error=e)
         else:
-            yield types.OutputQueueElement(result=types.Result.MOVE,
-                                           game_universe=game_universe,
-                                           move=move)
+            if game_universe.board.is_game_over():
+                LOGS.info('GAME ENDED!')
+                LOGS.info('result: %s', game_universe.board.result())
+                LOGS.info('GAME ENDED!')
+                yield types.OutputQueueElement(result=types.Result.END_GAME,
+                                               game_universe=game_universe,
+                                               move=move)
+            else:
+                yield types.OutputQueueElement(result=types.Result.MOVE,
+                                               game_universe=game_universe,
+                                               move=move)
 
 
 async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueElement],
