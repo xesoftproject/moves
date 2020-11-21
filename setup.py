@@ -37,10 +37,11 @@ setuptools.setup(name='moves',
                  install_requires=[
                      'Flask',
                      'stomp.py',
-                     'python-chess',
+                     'chess',
                      'flask-cors',
                      'pyopenssl',
                      'quart-trio',
-                     'trio-typing'
+                     'trio-typing',
+                     'hypercorn'
                  ],
                  package_data={'moves': moves_package_data()})
