@@ -67,13 +67,13 @@ async def main() -> None:
         out_send, out_receives = autils.open_memory_channel_tee(Output, 3, 0)
 
         async with autils.ctxms(in_send, in_receive, out_send, *out_receives):
-            it = iter(out_receives)
+            itor = iter(out_receives)
 
             nursery.start_soon(ins, in_send.clone())
             nursery.start_soon(deals, in_receive.clone(), out_send.clone())
-            nursery.start_soon(outs, 'UNO', next(it).clone())
-            nursery.start_soon(outs, 'DUE', next(it).clone())
-            nursery.start_soon(outs, 'TRE', next(it).clone())
+            nursery.start_soon(outs, 'UNO', next(itor).clone())
+            nursery.start_soon(outs, 'DUE', next(itor).clone())
+            nursery.start_soon(outs, 'TRE', next(itor).clone())
 
 
 class BasicAgentsExample(unittest.TestCase):
