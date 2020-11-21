@@ -19,8 +19,8 @@ async def amq_client(output_receive: trio.MemoryReceiveChannel[types.OutputQueue
         LOGS.info('amq_client')
 
         conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
-                                  configurations.STOMP_PORT)],
-                                use_ssl=True)
+                                  configurations.STOMP_PORT)])
+        conn.set_ssl([(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)])
         conn.connect(configurations.AMQ_USERNAME,
                      configurations.AMQ_PASSCODE,
                      wait=True)

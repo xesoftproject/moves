@@ -47,6 +47,8 @@ def handle(games: typing.Dict[str, types.GameUniverse],
 
         game_universe = games[game_id]
         move = typing.cast(str, input_element.move)
+        LOGS.info('[game_id: %s, game_universe: %s, move: %s]',
+                  game_id, game_universe, move)
         try:
             game_universe.board.push(game_universe.board.parse_uci(move))
         except (AssertionError, ValueError) as e:
@@ -55,6 +57,7 @@ def handle(games: typing.Dict[str, types.GameUniverse],
                                            game_universe=game_universe,
                                            error=e)
         else:
+            LOGS.info('PUSHED')
             if game_universe.board.is_game_over():
                 LOGS.info('GAME ENDED!')
                 LOGS.info('result: %s', game_universe.board.result())
@@ -86,4 +89,5 @@ async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueE
                 LOGS.exception('cannot handle %s - %s', input_element)
             else:
                 for output_element in output_elements:
+                    LOGS.info('output_element: %s', output_element)
                     await output_send.send(output_element)
