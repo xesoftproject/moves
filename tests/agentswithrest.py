@@ -9,6 +9,8 @@ import hypercorn.trio
 import quart_trio
 import trio
 
+from moves import autils
+
 
 @dataclasses.dataclass
 class Input:
@@ -43,7 +45,7 @@ async def rest(in_send: trio.MemorySendChannel[Input]) -> None:
 
 
 async def deals(in_receive: trio.MemoryReceiveChannel[Input],
-                out_send: trio.MemorySendChannel[Output]) -> None:
+                out_send: autils.MemorySendChannel[Output]) -> None:
     '''slow "brain"
 
     it is basically a state machine, that reads Inputs from in_receive, react
@@ -63,23 +65,30 @@ async def deals(in_receive: trio.MemoryReceiveChannel[Input],
             await out_send.send(output)
 
 
-async def outs(out_receive: trio.MemoryReceiveChannel[Output]) -> None:
+async def outs(msg: str,
+               out_receive: trio.MemoryReceiveChannel[Output]
+               ) -> None:
     'simple consumer: just print out every Output it receive'
 
     async with out_receive:
         async for output in out_receive:
-            print(f'outs [{output=}]')
+            print(f'outs [{msg=}, {output=}]')
 
 
 async def main() -> None:
     print(f'main()')
     async with trio.open_nursery() as nursery:
         in_send, in_receive = trio.open_memory_channel[Input](math.inf)  # <---
-        out_send, out_receive = trio.open_memory_channel[Output](0)
-        async with in_send, in_receive, out_send, out_receive:
+        out_send, out_receives = autils.open_memory_channel_tee(Output, 3, 0)
+
+        async with autils.ctxms(in_send, in_receive, out_send, *out_receives):
+            itor = iter(out_receives)
+
             nursery.start_soon(rest, in_send.clone())
             nursery.start_soon(deals, in_receive.clone(), out_send.clone())
-            nursery.start_soon(outs, out_receive.clone())
+            nursery.start_soon(outs, 'UNO', next(itor).clone())
+            nursery.start_soon(outs, 'DUE', next(itor).clone())
+            nursery.start_soon(outs, 'TRE', next(itor).clone())
 
 
 class BasicAgentsExample(unittest.TestCase):
