@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import math
 import typing
 
+import hypercorn.config
+import hypercorn.trio
+import quart_trio
 import trio
-import math
 
 
 @dataclasses.dataclass
@@ -30,27 +33,36 @@ async def logic(queue: trio.MemoryReceiveChannel[Input],
 
         async for input_ in queue:
             print(f'logic [{input_=}]')
+            await trio.sleep(3)
             output = Output(input_.payload)
             print(f'logic [{output=}]')
             for send_to in send_tos:
                 await send_to.send(output)
 
 
-async def ui(send_to_logic: trio.MemorySendChannel[Input],
-             queue: trio.MemoryReceiveChannel[Output]) -> None:
+async def rest(send_to_logic: trio.MemorySendChannel[Input],
+               queue: trio.MemoryReceiveChannel[Output]) -> None:
     'the producer is the human calling the rest endpoints'
 
     async with send_to_logic, queue:
-        for input_ in map(Input, (3, 5, None)):
-            print(f'ui [{input_=}]')
+        config = hypercorn.config.Config()
+        config.bind = ['localhost:8080']
+
+        app = quart_trio.QuartTrio(__name__)
+
+        @app.route('/<int:payload>')
+        async def hello(payload: int) -> str:
+            input_ = Input(payload)
+            print(f'rest [{input_=}]')
 
             await send_to_logic.send(input_)
             async for output in queue:
                 break
 
             print(f'ui [{output=}]')
+            return str(output)
 
-            await trio.sleep(1)
+        await hypercorn.trio.serve(app, config)
 
 
 async def output(output_queue: trio.MemoryReceiveChannel[Output]) -> None:
@@ -97,7 +109,7 @@ async def main() -> None:
                                 output_send_channel.clone(),
                                 ia_send_channel.clone()])
 
-            nursery.start_soon(ui, logic_send_channel.clone(),
+            nursery.start_soon(rest, logic_send_channel.clone(),
                                ui_receive_channel.clone())
             nursery.start_soon(output, output_receive_channel.clone())
             nursery.start_soon(ia, logic_send_channel.clone(),
