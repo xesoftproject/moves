@@ -29,35 +29,35 @@ async def ins(in_send: trio.MemorySendChannel[Input]) -> None:
             await in_send.send(input_)
 
 
-async def deals(in_receive: trio.MemoryReceiveChannel[Input],
+async def logic(queue: trio.MemoryReceiveChannel[Input],
                 out_send: autils.MemorySendChannel[Output]) -> None:
     '''slow "brain"
 
-    it is basically a state machine, that reads Inputs from in_receive, react
+    it is basically a state machine, that reads Inputs from queue, react
     transforming the Input cmd in an Output result, and send it to out_send
 
     force the slowness with a sleep (think some heavy calculations)
     '''
 
-    async with in_receive, out_send:
-        async for input_ in in_receive:
-            print(f'deals [{input_=}]')
+    async with queue, out_send:
+        async for input_ in queue:
+            print(f'logic [{input_=}]')
             cmd = input_.cmd
             await trio.sleep(3)
             result = f'result{cmd[3:]}'
             output = Output(result=result)
-            print(f'deals [{output=}]')
+            print(f'logic [{output=}]')
             await out_send.send(output)
 
 
-async def outs(msg: str,
-               out_receive: trio.MemoryReceiveChannel[Output]
+async def output(msg: str,
+               output_queue: trio.MemoryReceiveChannel[Output]
                ) -> None:
     'simple consumer: just print out every Output it receive'
 
-    async with out_receive:
-        async for output in out_receive:
-            print(f'outs [{msg=}, {output=}]')
+    async with output_queue:
+        async for output in output_queue:
+            print(f'output [{msg=}, {output=}]')
 
 
 async def main() -> None:
@@ -70,10 +70,10 @@ async def main() -> None:
             itor = iter(out_receives)
 
             nursery.start_soon(ins, in_send.clone())
-            nursery.start_soon(deals, in_receive.clone(), out_send.clone())
-            nursery.start_soon(outs, 'UNO', next(itor).clone())
-            nursery.start_soon(outs, 'DUE', next(itor).clone())
-            nursery.start_soon(outs, 'TRE', next(itor).clone())
+            nursery.start_soon(logic, in_receive.clone(), out_send.clone())
+            nursery.start_soon(output, 'UNO', next(itor).clone())
+            nursery.start_soon(output, 'DUE', next(itor).clone())
+            nursery.start_soon(output, 'TRE', next(itor).clone())
 
 
 class BasicAgentsExample(unittest.TestCase):
