@@ -41,7 +41,7 @@ async def ui(send_to_logic: trio.MemorySendChannel[Input],
     'the producer is the human calling the rest endpoints'
 
     async with send_to_logic, queue:
-        for input_ in map(Input, (3, )):
+        for input_ in map(Input, (3, 5, None)):
             print(f'ui [{input_=}]')
 
             await send_to_logic.send(input_)
@@ -69,12 +69,12 @@ async def ia(send_to_logic: trio.MemorySendChannel[Input],
     async with send_to_logic, queue:
         async for output in queue:
             print(f'ia [{output=}]')
+            if output.payload is None:
+                break
             if output.payload > 0:
                 input_ = Input(output.payload - 1)
                 print(f'ia [{input_=}]')
                 await send_to_logic.send(input_)
-            else:
-                break
 
 
 async def main() -> None:
