@@ -13,9 +13,9 @@ from .. import configurations
 LOGS = logging.getLogger(__name__)
 
 
-async def amq_client(output_receive: trio.MemoryReceiveChannel[types.OutputQueueElement]
+async def amq_client(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement]
                      ) -> None:
-    async with output_receive:
+    async with receive_channel:
         LOGS.info('amq_client')
 
         conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
@@ -25,7 +25,7 @@ async def amq_client(output_receive: trio.MemoryReceiveChannel[types.OutputQueue
                      configurations.AMQ_PASSCODE,
                      wait=True)
 
-        async for output_element in output_receive:
+        async for output_element in receive_channel:
             LOGS.info('output_element: %s', output_element)
 
             body = json.dumps({

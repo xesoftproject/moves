@@ -40,13 +40,13 @@ async def logic(queue: trio.MemoryReceiveChannel[Input],
                 await send_to.send(output)
 
 
-async def rest(send_to_logic: trio.MemorySendChannel[Input],
-               queue: trio.MemoryReceiveChannel[Output]) -> None:
+async def rest(send_channel: trio.MemorySendChannel[Input],
+               receive_channel: trio.MemoryReceiveChannel[Output]) -> None:
     'the producer is the human calling the rest endpoints'
 
-    async with send_to_logic, queue:
+    async with send_channel, receive_channel:
         config = hypercorn.config.Config()
-        config.bind = ['localhost:8080']
+        config.bind = ['0.0.0.0:8080']
 
         app = quart_trio.QuartTrio(__name__)
 
@@ -55,8 +55,8 @@ async def rest(send_to_logic: trio.MemorySendChannel[Input],
             input_ = Input(payload)
             print(f'rest [{input_=}]')
 
-            await send_to_logic.send(input_)
-            async for output in queue:
+            await send_channel.send(input_)
+            async for output in receive_channel:
                 break
 
             print(f'ui [{output=}]')
@@ -73,20 +73,20 @@ async def output(output_queue: trio.MemoryReceiveChannel[Output]) -> None:
             print(f'output [{output=}]')
 
 
-async def ia(send_to_logic: trio.MemorySendChannel[Input],
-             queue: trio.MemoryReceiveChannel[Output]
+async def ia(send_channel: trio.MemorySendChannel[Input],
+             receive_channel: trio.MemoryReceiveChannel[Output]
              ) -> None:
     'consume from and then send ia to logic'
 
-    async with send_to_logic, queue:
-        async for output in queue:
+    async with send_channel, receive_channel:
+        async for output in receive_channel:
             print(f'ia [{output=}]')
             if output.payload is None:
                 break
             if output.payload > 0:
                 input_ = Input(output.payload - 1)
                 print(f'ia [{input_=}]')
-                await send_to_logic.send(input_)
+                await send_channel.send(input_)
 
 
 async def main() -> None:

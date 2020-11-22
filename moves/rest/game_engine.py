@@ -11,8 +11,6 @@ from . import types
 from .. import autils
 
 
-
-
 LOGS = logging.getLogger(__name__)
 
 
@@ -71,23 +69,19 @@ def handle(games: typing.Dict[str, types.GameUniverse],
                                                move=move)
 
 
-async def game_engine(input_receive: trio.MemoryReceiveChannel[types.InputQueueElement],
-                      output_send: typing.Union[trio.MemorySendChannel[types.OutputQueueElement], autils.MemorySendChannel[types.OutputQueueElement]]
+async def game_engine(receive_channel: trio.MemoryReceiveChannel[types.InputQueueElement],
+                      send_channel: typing.Union[trio.MemorySendChannel[types.OutputQueueElement],
+                                                 autils.MemorySendChannel[types.OutputQueueElement]]
                       ) -> None:
-    async with input_receive, output_send:
+    async with receive_channel, send_channel:
         LOGS.info('game_engine')
 
         # mutable multiverse
         games: typing.Dict[str, types.GameUniverse] = {}
 
-        async for input_element in input_receive:
+        async for input_element in receive_channel:
             LOGS.info('input_element: %s', input_element)
 
-            try:
-                output_elements = handle(games, input_element)
-            except Exception:
-                LOGS.exception('cannot handle %s - %s', input_element)
-            else:
-                for output_element in output_elements:
-                    LOGS.info('output_element: %s', output_element)
-                    await output_send.send(output_element)
+            for output_element in handle(games, input_element):
+                LOGS.info('output_element: %s', output_element)
+                await send_channel.send(output_element)

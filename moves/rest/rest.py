@@ -10,15 +10,16 @@ import trio
 
 from . import types
 from .. import configurations
+import typing
 
 
 LOGS = logging.getLogger(__name__)
 
 
-async def rest(input_send: trio.MemorySendChannel[types.InputQueueElement],
-               output_receive: trio.MemoryReceiveChannel[types.OutputQueueElement]
+async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
+               receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement]
                ) -> None:
-    async with input_send, output_receive:
+    async with send_channel, receive_channel:
         LOGS.info('rest')
 
         config = hypercorn.config.Config()
@@ -27,7 +28,7 @@ async def rest(input_send: trio.MemorySendChannel[types.InputQueueElement],
         app = quart_trio.QuartTrio(__name__)
 
         @app.route('/start_new_game', methods=['POST'])
-        async def start_new_game():
+        async def start_new_game() -> typing.Optional[str]:
             body = quart.request.json
             LOGS.info('start_new_game [body: %s]', body)
 
@@ -40,14 +41,16 @@ async def rest(input_send: trio.MemorySendChannel[types.InputQueueElement],
                                                                 player_type=types.PlayerType.CPU))
             LOGS.info('start_new_game [input_: %s]', input_)
 
-            await input_send.send(input_)
-
-            async for output in output_receive:
+            await send_channel.send(input_)
+            game_id = None
+            async for output in receive_channel:
                 LOGS.info('start_new_game [output: %s]', output)
                 if output.result != types.Result.GAME_CREATED:
                     continue
                 game_id = output.game_universe.game_id
-                return game_id
+                break
+
+            return game_id
 
         @app.route('/update', methods=['POST'])
         def update():            # supposedly called by transcribe
@@ -61,7 +64,7 @@ async def rest(input_send: trio.MemorySendChannel[types.InputQueueElement],
                                              game_id=game_id,
                                              move=move)
 
-            app.nursery.start_soon(input_send.send, input_)
+            app.nursery.start_soon(send_channel.send, input_)
             LOGS.info('start_new_game [input_: {}]', input_)
 
             return input_

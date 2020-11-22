@@ -18,34 +18,38 @@ LOGS = logging.Logger(__name__)
 async def parent() -> None:
     async with trio.open_nursery() as nursery:
         # from external world (just rest for now) to game_engine
-        input_send, input_receive = trio.open_memory_channel[types.InputQueueElement](
+        game_engine_send_channel, game_engine_receive_channel = trio.open_memory_channel[types.InputQueueElement](
             math.inf)
         # from game_engine to external world (rest - for game id, cpu and amq)
-        output_send, output_receives = autils.open_memory_channel_tee(
-            types.OutputQueueElement, 3, 0)
+        multiple_send_channel, (rest_receive_channel, amq_client_receive_channel,
+                                cpu_receive_channel) = autils.open_memory_channel_tee[types.OutputQueueElement](3, math.inf)
 
         LOGS.info('parent')
 
-        async with autils.ctxms(input_send, input_receive,
-                                output_send, *output_receives):
+        async with game_engine_send_channel, game_engine_receive_channel, \
+                multiple_send_channel, \
+                rest_receive_channel, \
+                amq_client_receive_channel, \
+                cpu_receive_channel:
             # game engine
             nursery.start_soon(game_engine.game_engine,
-                               input_receive.clone(),
-                               output_send.clone())
+                               game_engine_receive_channel.clone(),
+                               multiple_send_channel.clone())
 
             # input from humans (+ create world)
             nursery.start_soon(rest.rest,
-                               input_send.clone(),
-                               output_receives[0].clone())
+                               game_engine_send_channel.clone(),
+                               rest_receive_channel.clone())
             # output to humans
             nursery.start_soon(amq_client.amq_client,
-                               output_receives[1].clone())
+                               amq_client_receive_channel.clone())
 
             # input and output from/to cpu
             nursery.start_soon(cpu.cpu,
-                               input_send.clone(),
-                               output_receives[2].clone())
+                               game_engine_send_channel.clone(),
+                               cpu_receive_channel.clone())
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     trio.run(parent)

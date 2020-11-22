@@ -1,17 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 import typing
 
 import trio
-
-
-def ctxms(*acontextmanagers: typing.AsyncContextManager
-          ) -> typing.AsyncContextManager:
-    async_exit_stack = contextlib.AsyncExitStack()
-    for acontextmanager in acontextmanagers:
-        async_exit_stack.push_async_exit(acontextmanager)
-    return async_exit_stack
+from trio._util import generic_function
 
 
 T = typing.TypeVar('T')
@@ -44,8 +36,8 @@ class MemorySendChannel(typing.Generic[T]):
             await send_channel.aclose()
 
 
-def open_memory_channel_tee(cls: typing.Type[T],
-                            howmany: int = 2,
+@generic_function
+def open_memory_channel_tee(howmany: int = 2,
                             *args
                             ) -> typing.Tuple[MemorySendChannel[T], typing.List[trio.MemoryReceiveChannel[T]]]:
     output_sends: typing.List[trio.MemorySendChannel[T]] = []

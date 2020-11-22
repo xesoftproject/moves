@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import math
-import unittest
 
 import trio
 
@@ -51,8 +50,8 @@ async def logic(queue: trio.MemoryReceiveChannel[Input],
 
 
 async def output(msg: str,
-               output_queue: trio.MemoryReceiveChannel[Output]
-               ) -> None:
+                 output_queue: trio.MemoryReceiveChannel[Output]
+                 ) -> None:
     'simple consumer: just print out every Output it receive'
 
     async with output_queue:
@@ -63,10 +62,12 @@ async def output(msg: str,
 async def main() -> None:
     print(f'main()')
     async with trio.open_nursery() as nursery:
-        in_send, in_receive = trio.open_memory_channel[Input](math.inf)  # <---
-        out_send, out_receives = autils.open_memory_channel_tee(Output, 3, 0)
+        in_send, in_receive = trio.open_memory_channel[Input](math.inf)
+        out_send, out_receives = autils.open_memory_channel_tee(
+            Output, 3, math.inf)
 
-        async with autils.ctxms(in_send, in_receive, out_send, *out_receives):
+        async with in_send, in_receive, \
+                out_send, out_receives[0], out_receives[1], out_receives[2]:
             itor = iter(out_receives)
 
             nursery.start_soon(ins, in_send.clone())
@@ -76,10 +77,5 @@ async def main() -> None:
             nursery.start_soon(output, 'TRE', next(itor).clone())
 
 
-class BasicAgentsExample(unittest.TestCase):
-    def test_basic_agents_example(self):
-        trio.run(main)
-
-
 if __name__ == '__main__':
-    unittest.main()
+    trio.run(main)
