@@ -63,18 +63,17 @@ async def main() -> None:
     print(f'main()')
     async with trio.open_nursery() as nursery:
         in_send, in_receive = trio.open_memory_channel[Input](math.inf)
-        out_send, out_receives = autils.open_memory_channel_tee(
-            Output, 3, math.inf)
+        out_send, (out_receive0, out_receive1,
+                   out_receive2) = autils.open_memory_channel_tee[Output](3, math.inf)
 
         async with in_send, in_receive, \
-                out_send, out_receives[0], out_receives[1], out_receives[2]:
-            itor = iter(out_receives)
+                out_send, out_receive0, out_receive1, out_receive2:
 
             nursery.start_soon(ins, in_send.clone())
             nursery.start_soon(logic, in_receive.clone(), out_send.clone())
-            nursery.start_soon(output, 'UNO', next(itor).clone())
-            nursery.start_soon(output, 'DUE', next(itor).clone())
-            nursery.start_soon(output, 'TRE', next(itor).clone())
+            nursery.start_soon(output, 'UNO', out_receive0.clone())
+            nursery.start_soon(output, 'DUE', out_receive1.clone())
+            nursery.start_soon(output, 'TRE', out_receive2.clone())
 
 
 if __name__ == '__main__':
