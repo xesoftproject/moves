@@ -12,7 +12,7 @@ def _fqcn(cls: type) -> str:
 LOGS_ROOT = 'logs'
 
 
-def setup_logs():
+def setup_logs() -> None:
     if configurations.running_on_ec2():
         # write logs on file
 

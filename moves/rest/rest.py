@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import typing
 
 import hypercorn.config
 import hypercorn.trio
@@ -10,7 +11,6 @@ import trio
 
 from . import types
 from .. import configurations
-import typing
 
 
 LOGS = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
             return game_id
 
         @app.route('/update', methods=['POST'])
-        def update():            # supposedly called by transcribe
+        def update() -> str:            # supposedly called by transcribe
             body = quart.request.json
             LOGS.info('start_new_game [body: {}]', body)
 
@@ -67,6 +67,6 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
             app.nursery.start_soon(send_channel.send, input_)
             LOGS.info('start_new_game [input_: {}]', input_)
 
-            return input_
+            return str(input_)
 
         await hypercorn.trio.serve(app, config)

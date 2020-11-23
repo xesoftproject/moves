@@ -50,6 +50,6 @@ async def parent() -> None:
                                cpu_receive_channel.clone())
 
 
-def main():
+def main() -> None:
     logging.basicConfig(level=logging.INFO)
     trio.run(parent)

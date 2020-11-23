@@ -8,17 +8,17 @@ from . import logs
 
 
 class Web(Flask):
-    def __init__(self):
+    def __init__(self) -> None:
         logs.setup_logs()
         super().__init__(__name__,
                          static_url_path='/')
 
         @self.route('/')
-        def index():
+        def index() -> Response:
             return current_app.send_static_file('index.html')
 
         @self.route('/js/configuration.js')
-        def web():
+        def web() -> Response:
             return Response(render_template('configuration.js',
                                             rest_hostname=configurations.REST_HOSTNAME,
                                             rest_port=configurations.REST_PORT,
@@ -30,11 +30,11 @@ class Web(Flask):
                                             amq_queue=configurations.AMQ_QUEUE),
                             mimetype='application/javascript; charset=utf-8')
 
-    def run(self):
-        return super().run(host='0.0.0.0',
-                           port=configurations.WEB_PORT,
-                           ssl_context='adhoc')
+    def run_web(self) -> None:
+        super().run(host='0.0.0.0',
+                    port=configurations.WEB_PORT,
+                    ssl_context='adhoc')
 
 
-def main():
-    Web().run()
+def main() -> None:
+    Web().run_web()
