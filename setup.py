@@ -42,6 +42,7 @@ setuptools.setup(name='moves',
                      'pyopenssl',
                      'quart-trio',
                      'trio-typing',
-                     'hypercorn'
+                     'hypercorn',
+                     'quart-cors'
                  ],
                  package_data={'moves': moves_package_data()})

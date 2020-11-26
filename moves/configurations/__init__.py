@@ -26,5 +26,7 @@ __all__ = [
     'AMQ_USERNAME',
     'AMQ_PASSCODE',
     'AMQ_QUEUE',
-    'STOCKFISH'
+    'STOCKFISH',
+    'CERTFILE',
+    'KEYFILE'
 ]

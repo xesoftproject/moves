@@ -31,9 +31,13 @@ class Web(Flask):
                             mimetype='application/javascript; charset=utf-8')
 
     def run_web(self) -> None:
+        ssl_context = ((configurations.CERTFILE, configurations.KEYFILE)
+                       if configurations.CERTFILE and configurations.KEYFILE
+                       else None)
+
         super().run(host='0.0.0.0',
                     port=configurations.WEB_PORT,
-                    ssl_context='adhoc')
+                    ssl_context=ssl_context)
 
 
 def main() -> None:
