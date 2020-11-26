@@ -1,11 +1,11 @@
 # web server port (where you point your browser at)
-WEB_PORT = 8080
+WEB_PORT = 443
 
 # the rest hostname
 REST_HOSTNAME = 'www.xesoft.ml'
 
 # rest server port (where the POST goes)
-REST_PORT = 5000
+REST_PORT = 8443
 
 # ws port (where the js consumer listen to)
 WS_PORT = 61619
