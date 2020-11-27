@@ -13,8 +13,8 @@ def moves_package_data() -> typing.List[str]:
     cwd = os.getcwd()
     os.chdir('moves')
     try:
-        static = glob.glob('static/**', recursive=True)
-        templates = glob.glob('templates/**', recursive=True)
+        static = glob.glob('web/static/**', recursive=True)
+        templates = glob.glob('web/templates/**', recursive=True)
         return static + templates
     finally:
         os.chdir(cwd)
