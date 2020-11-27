@@ -10,6 +10,7 @@ from . import game_engine
 from . import rest
 from . import types
 from .. import autils
+from .. import logs
 
 
 LOGS = logging.Logger(__name__)
@@ -51,5 +52,6 @@ async def parent() -> None:
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
+    logs.setup_logs()
+
     trio.run(parent)

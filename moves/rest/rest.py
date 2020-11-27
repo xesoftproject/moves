@@ -25,15 +25,13 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
 
         config = hypercorn.config.Config()
         config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
-        config.debug = True
         if configurations.CERTFILE:
             config.certfile = configurations.CERTFILE
         if configurations.KEYFILE:
             config.keyfile = configurations.KEYFILE
 
-        app = quart_cors.cors(quart_trio.QuartTrio(__name__),
-                              allow_origin='*',
-                              allow_headers=["content-type"])
+        app = typing.cast(quart_trio.QuartTrio, quart_cors.cors(quart_trio.QuartTrio(
+            __name__), allow_origin='*', allow_headers=["content-type"]))
 
         @app.route('/start_new_game', methods=['POST'])
         async def start_new_game() -> typing.Optional[str]:

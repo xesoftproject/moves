@@ -1,7 +1,9 @@
-import os
 import glob
-import setuptools
+import os
 import typing
+
+import setuptools
+
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
@@ -35,11 +37,8 @@ setuptools.setup(name='moves',
                      ]
                  },
                  install_requires=[
-                     'Flask',
                      'stomp.py',
                      'chess',
-                     'flask-cors',
-                     'pyopenssl',
                      'quart-trio',
                      'trio-typing',
                      'hypercorn',
