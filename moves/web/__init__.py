@@ -16,7 +16,7 @@ LOGS = logging.getLogger(__name__)
 
 
 def main() -> None:
-    logs.setup_logs()
+    logs.setup_logs(__name__)
 
     config = hypercorn.config.Config()
     config.bind = [f'0.0.0.0:{configurations.WEB_PORT}']

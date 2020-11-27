@@ -12,7 +12,7 @@ def _fqcn(cls: type) -> str:
 LOGS_ROOT = 'logs'
 
 
-def setup_logs() -> None:
+def setup_logs(filename: str) -> None:
     if configurations.running_on_ec2():
         # write logs on file
 
@@ -24,7 +24,7 @@ def setup_logs() -> None:
             'handlers': {
                 'wsgi': {
                     'class': _fqcn(logging.handlers.TimedRotatingFileHandler),
-                    'filename': f'{LOGS_ROOT}/{__name__}',
+                    'filename': f'{LOGS_ROOT}/{filename}',
                     'when': 'midnight',
                     'backupCount': 1
                 }

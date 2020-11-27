@@ -52,6 +52,6 @@ async def parent() -> None:
 
 
 def main() -> None:
-    logs.setup_logs()
+    logs.setup_logs(__name__)
 
     trio.run(parent)

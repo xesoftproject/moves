@@ -35,7 +35,7 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
 
         @app.route('/start_new_game', methods=['POST'])
         async def start_new_game() -> typing.Optional[str]:
-            body = quart.request.json
+            body = await quart.request.json
             LOGS.info('start_new_game [body: %s]', body)
 
             # this is what should happen when a 'new game' endpoint is called
