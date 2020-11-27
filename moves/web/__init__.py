@@ -19,7 +19,7 @@ def main() -> None:
     logs.setup_logs()
 
     config = hypercorn.config.Config()
-    config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
+    config.bind = [f'0.0.0.0:{configurations.WEB_PORT}']
     if configurations.CERTFILE:
         config.certfile = configurations.CERTFILE
     if configurations.KEYFILE:
