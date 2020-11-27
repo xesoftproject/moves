@@ -37,6 +37,12 @@ const movement = (from, to) => {
  * @param {number} delta_y
  */
 const apply_move = (piece, delta_x, delta_y) => {
+	console.log('piece: %o, delta_x: %o, delta_y: %o', piece, delta_x, delta_y);
+	if (!piece) {
+		console.error('no piece!');
+		return;
+	}
+
 	// the table is rotated of 90°
 	const x = piece.object3D.position.x + (delta_y * STEP);
 	const y = piece.object3D.position.y
@@ -58,8 +64,13 @@ const move = ({ move }) => {
 	const from = move.substr(0, 2);
 	const to = move.substr(2, 2);
 
+	console.log('from: %o, to: %o', from, to);
+
 	const piece = lookup(from);
+	console.log('piece: %o', piece);
+
 	const { delta_x, delta_y } = movement(from, to);
+	console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
 
 	apply_move(piece, delta_x, delta_y);
 };

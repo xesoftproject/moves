@@ -9,13 +9,13 @@ const basename = `${rest_protocol}://${rest_hostname}:${rest_port}`
 const update = async (game_id, move) => {
 	const response = await fetch(`${basename}/update`, {
 		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
 		body: JSON.stringify({
 			game_id: game_id,
 			move: move
-		}),
-		headers: {
-			'Content-Type': 'application/json'
-		}
+		})
 	});
 
 	if (!response.ok)
@@ -30,7 +30,8 @@ const start_new_game = async () => {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: {}
+		body: JSON.stringify({
+		})
 	});
 
 	if (!response.ok)
