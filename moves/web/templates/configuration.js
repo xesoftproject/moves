@@ -1,3 +1,4 @@
+export const rest_protocol = '{{rest_protocol}}';
 export const rest_hostname = '{{rest_hostname}}';
 export const rest_port = parseInt('{{rest_port}}');
 export const stomp_port = parseInt('{{stomp_port}}');

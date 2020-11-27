@@ -34,6 +34,7 @@ def main() -> None:
     @app.route('/js/configuration.js')
     async def web() -> quart.Response:
         body = await quart.render_template('configuration.js',
+                                           rest_protocol=configurations.REST_PROTOCOL,
                                            rest_hostname=configurations.REST_HOSTNAME,
                                            rest_port=configurations.REST_PORT,
                                            stomp_port=configurations.STOMP_PORT,

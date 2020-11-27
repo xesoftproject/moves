@@ -1,6 +1,9 @@
 # web server port (where you point your browser at)
 WEB_PORT = 443
 
+# the rest protocol
+REST_PROTOCOL = 'https'
+
 # the rest hostname
 REST_HOSTNAME = 'www.xesoft.ml'
 

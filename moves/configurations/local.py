@@ -1,6 +1,9 @@
 # web server port (where you point your browser at)
 WEB_PORT = 8080
 
+# the rest protocol
+REST_PROTOCOL = 'http'
+
 # the rest hostname
 REST_HOSTNAME = 'localhost'
 
