@@ -29,7 +29,8 @@ const start_new_game = async () => {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
-		}
+		},
+		body: {}
 	});
 
 	if (!response.ok)

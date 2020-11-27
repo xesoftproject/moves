@@ -34,3 +34,5 @@ def setup_logs(filename: str) -> None:
                 'handlers': ['wsgi']
             }
         })
+    else:
+        logging.basicConfig(level=logging.INFO)
