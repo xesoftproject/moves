@@ -23,14 +23,6 @@ WS_PORT = 61619
 # stomp port (where the producer send messages)
 STOMP_PORT = 61614
 
-# the amq hostname
-AMQ_HOSTNAME = 'b-e05495a3-40d2-4782-b15d-2a9ae104e344-1.mq.eu-west-1.amazonaws.com'
-
-# the amq credentials
-AMQ_USERNAME = 'XesoftBroker'
-AMQ_PASSCODE = 'XesoftBroker'
-
-
 def amq_topic(game_id: str) -> str:
     'where you publish messages'
 
@@ -49,6 +41,7 @@ __all__ = ['WEB_PORT',
            'REST_PROTOCOL',
            'REST_HOSTNAME',
            'REST_PORT',
+           'WS_PROTOCOL',
            'WS_PORT',
            'STOMP_PORT',
            'AMQ_HOSTNAME',

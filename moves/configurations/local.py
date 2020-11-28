@@ -15,3 +15,13 @@ STOCKFISH = '/Users/vito.detullio/Desktop/work-e570/bu media contest/stockfish_1
 
 CERTFILE = ''
 KEYFILE = ''
+
+# websocket protocol
+WS_PROTOCOL = 'ws'
+
+# the amq hostname
+AMQ_HOSTNAME = 'localhost'
+
+# the amq credentials
+AMQ_USERNAME = ''
+AMQ_PASSCODE = ''

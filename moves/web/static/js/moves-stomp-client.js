@@ -1,6 +1,6 @@
 import './lib/stomp.umd.min.js';
 
-import { WS_PORT, AMQ_HOSTNAME, AMQ_USERNAME, AMQ_PASSCODE, amq_topic, amq_queue } from './configuration.js';
+import { WS_PROTOCOL, WS_PORT, AMQ_HOSTNAME, AMQ_USERNAME, AMQ_PASSCODE, amq_topic, amq_queue } from './configuration.js';
 
 let _stompClient = null;
 /** @returns {Promise<StompJs.Client>} */
@@ -12,7 +12,7 @@ const connect = () => {
 					login: AMQ_USERNAME,
 					passcode: AMQ_PASSCODE,
 				},
-				brokerURL: `wss://${AMQ_HOSTNAME}:${WS_PORT}`,
+				brokerURL: `${WS_PROTOCOL}://${AMQ_HOSTNAME}:${WS_PORT}`,
 				debug: (str) => {
 					console.log('STOMP: ' + str);
 				},

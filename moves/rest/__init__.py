@@ -4,7 +4,7 @@ import typing
 
 import trio
 
-from . import amq_client
+from . import ws
 from . import cpu
 from . import game_engine
 from . import rest
@@ -42,7 +42,7 @@ async def parent() -> None:
                                game_engine_send_channel.clone(),
                                rest_receive_channel.clone())
             # output to humans
-            nursery.start_soon(amq_client.amq_client,
+            nursery.start_soon(ws.ws,
                                amq_client_receive_channel.clone())
 
             # input and output from/to cpu
