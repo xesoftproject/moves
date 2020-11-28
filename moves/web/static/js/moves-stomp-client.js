@@ -1,6 +1,6 @@
 import './lib/stomp.umd.min.js';
 
-import { amq_username, amq_passcode, amq_hostname, ws_port, amq_queue } from './configuration.js';
+import { WS_PORT, AMQ_HOSTNAME, AMQ_USERNAME, AMQ_PASSCODE, amq_topic, amq_queue } from './configuration.js';
 
 let _stompClient = null;
 /** @returns {Promise<StompJs.Client>} */
@@ -9,10 +9,10 @@ const connect = () => {
 		return new Promise((resolve, reject) => {
 			_stompClient = new StompJs.Client({
 				connectHeaders: {
-					login: amq_username,
-					passcode: amq_passcode,
+					login: AMQ_USERNAME,
+					passcode: AMQ_PASSCODE,
 				},
-				brokerURL: `wss://${amq_hostname}:${ws_port}`,
+				brokerURL: `wss://${AMQ_HOSTNAME}:${WS_PORT}`,
 				debug: (str) => {
 					console.log('STOMP: ' + str);
 				},
@@ -34,17 +34,16 @@ let subscription = null;
 
 /**
  * @param {string} game_id
- * @param {(string, string) => any} on_message
+ * @param {({?string, string}) => void} on_message
  */
 const subscribe = async (game_id, on_message) => {
 	if (subscription !== null)
 		throw new Error('subscription is not null');
 
 	const stompClient = await connect();
-
-	subscription = stompClient.subscribe(`/topic/${amq_queue(game_id)}`, (message) => {
+	subscription = stompClient.subscribe(amq_queue(game_id), (message) => {
 		on_message(JSON.parse(message.body));
-	});
+	}, { ack: 'client' });
 };
 
 const unsubscribe = () => {
@@ -55,4 +54,21 @@ const unsubscribe = () => {
 	subscription = null;
 }
 
-export { subscribe, unsubscribe };
+/**
+ * @param {string} game_id
+ * @param {any} messagee
+ * @returns void
+ */
+const publish = async (game_id, message) => {
+	const stompClient = await connect();
+
+	stompClient.publish({
+		destination: amq_topic(game_id),
+		body: JSON.stringify(message),
+		headers: {
+			'content-type': 'application/json'
+		}
+	});
+}
+
+export { subscribe, unsubscribe, publish };

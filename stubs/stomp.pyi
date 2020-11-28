@@ -15,5 +15,9 @@ class Connection:
     def connect(self, username: str, passcode: str, wait: bool) -> None:
         ...
 
-    def send(self, body: str, destination: str) -> None:
+    def send(self,
+             destination: str,
+             body: str,
+             content_type: typing.Optional[str]=None
+             ) -> None:
         ...

@@ -1,6 +1,6 @@
-import { rest_protocol, rest_hostname, rest_port } from './configuration.js';
+import { REST_PROTOCOL, REST_HOSTNAME, REST_PORT } from './configuration.js';
 
-const basename = `${rest_protocol}://${rest_hostname}:${rest_port}`
+const basename = `${REST_PROTOCOL}://${REST_HOSTNAME}:${REST_PORT}`
 
 /**
  * @param {string} game_id

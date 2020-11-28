@@ -1,4 +1,6 @@
 import socket
+import typing
+import uuid
 
 
 EC2_HOSTNAME = 'ip-172-31-36-240'
@@ -15,18 +17,45 @@ if running_on_ec2():
 else:
     from .local import *
 
+# ws port (where the js consumer listen to)
+WS_PORT = 61619
 
-__all__ = [
-    'WEB_PORT',
-    'REST_HOSTNAME',
-    'REST_PORT',
-    'WS_PORT',
-    'STOMP_PORT',
-    'AMQ_HOSTNAME',
-    'AMQ_USERNAME',
-    'AMQ_PASSCODE',
-    'AMQ_QUEUE',
-    'STOCKFISH',
-    'CERTFILE',
-    'KEYFILE'
-]
+# stomp port (where the producer send messages)
+STOMP_PORT = 61614
+
+# the amq hostname
+AMQ_HOSTNAME = 'b-e05495a3-40d2-4782-b15d-2a9ae104e344-1.mq.eu-west-1.amazonaws.com'
+
+# the amq credentials
+AMQ_USERNAME = 'XesoftBroker'
+AMQ_PASSCODE = 'XesoftBroker'
+
+
+def amq_topic(game_id: str) -> str:
+    'where you publish messages'
+
+    return f'/topic/VirtualTopic.{game_id}'
+
+
+def amq_queue(game_id: str, consumer_id: typing.Optional[str]= None) -> str:
+    'what you subscribe on'
+    if consumer_id is None:
+        consumer_id = str(uuid.uuid4())
+
+    return f'/queue/Consumer.{consumer_id}.VirtualTopic.{game_id}'
+
+
+__all__ = ['WEB_PORT',
+           'REST_PROTOCOL',
+           'REST_HOSTNAME',
+           'REST_PORT',
+           'WS_PORT',
+           'STOMP_PORT',
+           'AMQ_HOSTNAME',
+           'AMQ_USERNAME',
+           'AMQ_PASSCODE',
+           'STOCKFISH',
+           'CERTFILE',
+           'KEYFILE',
+           'amq_topic',
+           'amq_queue']

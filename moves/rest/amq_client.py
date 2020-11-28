@@ -20,7 +20,8 @@ async def amq_client(receive_channel: trio.MemoryReceiveChannel[types.OutputQueu
 
         conn = stomp.Connection([(configurations.AMQ_HOSTNAME,
                                   configurations.STOMP_PORT)])
-        conn.set_ssl([(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)])
+        conn.set_ssl(
+            [(configurations.AMQ_HOSTNAME, configurations.STOMP_PORT)])
         conn.connect(configurations.AMQ_USERNAME,
                      configurations.AMQ_PASSCODE,
                      wait=True)
@@ -32,6 +33,9 @@ async def amq_client(receive_channel: trio.MemoryReceiveChannel[types.OutputQueu
                 'move': output_element.move,
                 'table': str(output_element.game_universe.board)
             })
-            destination = f'/topic/{configurations.AMQ_QUEUE}-{output_element.game_universe.game_id}'
+            destination = configurations.amq_queue(
+                output_element.game_universe.game_id)
 
-            conn.send(body=body, destination=destination)
+            conn.send(destination=destination,
+                      body=body,
+                      content_type='application/json')

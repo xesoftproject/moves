@@ -1,0 +1,21 @@
+// TODO: port inside sources
+import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
+
+export const REST_PROTOCOL = '{{configurations.REST_PROTOCOL}}';
+export const REST_HOSTNAME = '{{configurations.REST_HOSTNAME}}';
+export const REST_PORT = {{configurations.REST_PORT}};
+export const WS_PORT = {{configurations.WS_PORT}};
+export const AMQ_HOSTNAME = '{{configurations.AMQ_HOSTNAME}}';
+export const AMQ_USERNAME = '{{configurations.AMQ_USERNAME}}';
+export const AMQ_PASSCODE = '{{configurations.AMQ_PASSCODE}}';
+
+// shared format logic with python
+export const amq_topic = (game_id) => {
+	return `/topic/VirtualTopic.${game_id}?consumer.retroactive=true`;
+}
+export const amq_queue = (game_id, consumer_id) => {
+	if (!consumer_id)
+		consumer_id = uuidv4();
+
+	return `/queue/Consumer.${consumer_id}.VirtualTopic.${game_id}?consumer.retroactive=true`;
+}

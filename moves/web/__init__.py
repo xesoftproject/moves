@@ -33,16 +33,8 @@ def main() -> None:
 
     @app.route('/js/configuration.js')
     async def web() -> quart.Response:
-        body = await quart.render_template('configuration.js',
-                                           rest_protocol=configurations.REST_PROTOCOL,
-                                           rest_hostname=configurations.REST_HOSTNAME,
-                                           rest_port=configurations.REST_PORT,
-                                           stomp_port=configurations.STOMP_PORT,
-                                           ws_port=configurations.WS_PORT,
-                                           amq_hostname=configurations.AMQ_HOSTNAME,
-                                           amq_username=configurations.AMQ_USERNAME,
-                                           amq_passcode=configurations.AMQ_PASSCODE,
-                                           amq_queue=configurations.AMQ_QUEUE)
+        body = await quart.render_template('configuration.js.jinja2',
+                                           configurations=configurations)
         return quart.Response(body,
                               mimetype='application/javascript; charset=utf-8')
 
