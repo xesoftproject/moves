@@ -23,9 +23,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	});
 
 	ws.onmessage = (event) => {
-		console.log(event.data);
 		const li = document.createElement('li');
-		li.textContent = event;
+		li.textContent = event.data;
 		document.querySelector('ul').appendChild(li);
 	};
 });

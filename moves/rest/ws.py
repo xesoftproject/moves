@@ -1,18 +1,19 @@
 from __future__ import annotations
 
+import collections
 import logging
+import math
 import typing
 
 import hypercorn.config
 import hypercorn.trio
 import quart
+from quart.globals import websocket
 import quart_trio
 import trio
 
 from . import types
 from .. import configurations
-import collections
-import math
 
 
 LOGS = logging.getLogger(__name__)
@@ -45,35 +46,40 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
 
         app = quart_trio.QuartTrio(__name__)
 
-        db: typing.DefaultDict[str, S] = collections.defaultdict(S)
+        db: typing.DefaultDict[str, typing.Tuple[typing.List[str],
+                                                 typing.Set[typing.Any]]] = collections.defaultdict(lambda: ([], set()))
+
+        s,r = trio.open_memory_channel[typing.Tuple[str, str]](math.inf)
+
+        async def broadcast():
+            async for _, message in r:
+                # TODO add per game_id
+                for websocket in (ws for _,wss in db.values() for ws in wss):
+                    await websocket.send(message)
 
         @app.websocket('/register/<string:game_id>')
         async def register(game_id: str) -> None:
             print(f'register({game_id=})')
 
-            msc, mrc = trio.open_memory_channel[Move](math.inf)
-            s = db[game_id]
-            s.mscs.add(msc)
-            s.mrcs.add(mrc)
 
-            print(f'register [{s=}]')
+            db[game_id][1].add(quart.websocket._get_current_object())
 
-            for move in s.moves:
-                print(f'register [{move=}]')
-                await msc.send(move)
+            # manda mosse vecchie
+            for old_move in db[game_id][0]:
+                print(f'register [{old_move=}]')
+                await quart.websocket.send(old_move)
 
             while True:
-                data = await quart.websocket.receive()
-                print(f'register [{data=}]')
+                # arriva mossa nuova
+                new_move = await quart.websocket.receive()
+                print(f'register [{new_move=}]')
 
-                for msc in db[game_id].mscs:
-                    print(f'register [{msc=}]')
-                    await msc.send(data)
+                # salvala
+                db[game_id][0].append(new_move)
 
-                for mrc in db[game_id].mrcs:
-                    print(f'register [{mrc=}]')
-                    async for msg in mrc:
-                        print(f'register [{msg=}]')
-                        await quart.websocket.send(msg)
+                # notifica broadcast
+                await s.send((game_id, new_move))
 
-        await hypercorn.trio.serve(app, config)
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(hypercorn.trio.serve, app, config)
+            nursery.start_soon(broadcast)
