@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import collections
+import json
 import logging
-import math
 import typing
 
 import hypercorn.config
 import hypercorn.trio
 import quart
-from quart.globals import websocket
 import quart_trio
 import trio
 
@@ -19,17 +18,20 @@ from .. import configurations
 LOGS = logging.getLogger(__name__)
 
 
-Move = str
-
-
 class S:
+    'Oggetto che rappresenta i dati di connessione per game_id'
+
     def __init__(self):
-        self.moves: typing.Deque[Move] = collections.deque()
-        self.mscs: typing.Set[trio.MemorySendChannel[Move]] = set()
-        self.mrcs: typing.Set[trio.MemoryReceiveChannel[Move]] = set()
+        # lista di mosse ['a1a2','b1b3',...]
+        self.moves: typing.List[str] = []
+        # insieme di client connessi set(ws-client-1, ws-client-2, ...)
+        self.websockets: typing.Set[typing.Any] = set()
+        # coda per i messaggi che andranno su tutte le websockets
+        self.channel: typing.Tuple[trio.MemorySendChannel[str],
+                                   trio.MemoryReceiveChannel[str]] = trio.open_memory_channel[str](0)
 
     def __repr__(self):
-        return f'S({self.moves}, {self.mscs}, {self.mrcs})'
+        return f'{self.__class__.__name__}({self.moves}, {self.websockets}, {self.channel})'
 
 
 async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement]
@@ -46,28 +48,35 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
 
         app = quart_trio.QuartTrio(__name__)
 
-        db: typing.DefaultDict[str, typing.Tuple[typing.List[str],
-                                                 typing.Set[typing.Any]]] = collections.defaultdict(lambda: ([], set()))
+        db: typing.DefaultDict[str, S] = collections.defaultdict(S)
 
-        s,r = trio.open_memory_channel[typing.Tuple[str, str]](math.inf)
+        async def broadcast_per_game_id(s):
+            # per ogni messaggio da inviare
+            async for message in s.channel[1]:
+                # per ogni client connesso
+                for websocket in s.websockets:
+                    # manda il messaggio a quel client
+                    await websocket.send(message)
 
         async def broadcast():
-            async for _, message in r:
-                # TODO add per game_id
-                for websocket in (ws for _,wss in db.values() for ws in wss):
-                    await websocket.send(message)
+            async with trio.open_nursery() as nursery:
+                while True:
+                    await trio.sleep(0)
+                    # per ogni partita
+                    for s in db.values():
+                        nursery.start_soon(broadcast_per_game_id, s)
+            print("ended")
 
         @app.websocket('/register/<string:game_id>')
         async def register(game_id: str) -> None:
             print(f'register({game_id=})')
 
-
-            db[game_id][1].add(quart.websocket._get_current_object())
+            db[game_id].websockets.add(quart.websocket._get_current_object())
 
             # manda mosse vecchie
-            for old_move in db[game_id][0]:
+            for old_move in db[game_id].moves:
                 print(f'register [{old_move=}]')
-                await quart.websocket.send(old_move)
+                await quart.websocket.send(json.dumps((game_id, old_move)))
 
             while True:
                 # arriva mossa nuova
@@ -75,10 +84,10 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
                 print(f'register [{new_move=}]')
 
                 # salvala
-                db[game_id][0].append(new_move)
+                db[game_id].moves.append(new_move)
 
                 # notifica broadcast
-                await s.send((game_id, new_move))
+                await db[game_id].channel[0].send(json.dumps((game_id, new_move)))
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(hypercorn.trio.serve, app, config)

@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	var ws = new WebSocket(`${WS_PROTOCOL}://${AMQ_HOSTNAME}:${WS_PORT}/register/${GAME_ID}`);
 
 	document.querySelector('h1').textContent = I_AM;
+	document.querySelector('h2').textContent = GAME_ID;
 	document.querySelector('button').addEventListener('click', (e) => {
 		e.preventDefault();
 
