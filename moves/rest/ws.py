@@ -65,30 +65,34 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
                     # per ogni partita
                     for s in db.values():
                         nursery.start_soon(broadcast_per_game_id, s)
-            print("ended")
 
         @app.websocket('/register/<string:game_id>')
         async def register(game_id: str) -> None:
-            print(f'register({game_id=})')
+            LOGS.info('register(%s)', game_id)
 
             db[game_id].websockets.add(quart.websocket._get_current_object())
 
             # manda mosse vecchie
             for old_move in db[game_id].moves:
-                print(f'register [{old_move=}]')
-                await quart.websocket.send(json.dumps((game_id, old_move)))
+                await quart.websocket.send(old_move)
 
-            while True:
-                # arriva mossa nuova
-                new_move = await quart.websocket.receive()
-                print(f'register [{new_move=}]')
+            # mantieni la connessione aperta (needed?)
+            trio.sleep_forever()
 
-                # salvala
-                db[game_id].moves.append(new_move)
+        async def consume_queue():
+            async for output_element in receive_channel:
+                LOGS.info('output_element: %s', output_element)
 
-                # notifica broadcast
-                await db[game_id].channel[0].send(json.dumps((game_id, new_move)))
+                body = json.dumps({
+                    'move': output_element.move,
+                    'table': str(output_element.game_universe.board)
+                })
+                game_id = output_element.game_universe.game_id
+
+                db[game_id].moves.append(body)
+                await db[game_id].channel[0].send(body)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(hypercorn.trio.serve, app, config)
             nursery.start_soon(broadcast)
+            nursery.start_soon(consume_queue)
