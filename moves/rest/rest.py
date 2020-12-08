@@ -34,7 +34,7 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
                           quart_cors.cors(quart_trio.QuartTrio(__name__),
                                           allow_origin='*',
                                           allow_methods=['POST'],
-                                          allow_headers=["content-type"]))
+                                          allow_headers=['content-type']))
 
         @app.route('/start_new_game', methods=['POST'])
         async def start_new_game() -> typing.Optional[str]:

@@ -1,6 +1,8 @@
 /**
+ * return the query parameters as a multi valued map
+ * 
  * @param {Location} location
- * return the query parameters as a multiset
+ * @returns {{string, [string]}}
  */
 const queryparams = (location = window.location) => {
 	if (!location.search)

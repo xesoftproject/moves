@@ -36,6 +36,7 @@ class S:
 
 async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement]
              ) -> None:
+    raise Exception("move it inside rest")
     async with receive_channel:
         LOGS.info('ws')
 
@@ -77,7 +78,7 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
                 await quart.websocket.send(old_move)
 
             # mantieni la connessione aperta (needed?)
-            trio.sleep_forever()
+            await trio.sleep_forever()
 
         async def consume_queue():
             async for output_element in receive_channel:

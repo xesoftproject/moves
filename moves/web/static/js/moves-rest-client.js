@@ -1,13 +1,38 @@
-import { REST_PROTOCOL, REST_HOSTNAME, REST_PORT } from './configuration.js';
+import { HOSTNAME, HTTP, REST_PORT, WS, WS_PORT } from './configuration.js';
 
-const basename = `${REST_PROTOCOL}://${REST_HOSTNAME}:${REST_PORT}`
+const HTTP_BASENAME = `${HTTP}://${HOSTNAME}:${REST_PORT}`;
+const WS_BASENAME = `${WS}://${HOSTNAME}:${WS_PORT}`;
+
+/**
+ * @param {string} white
+ * @param {string} black
+ * @returns {string} the game id
+ */
+const start_new_game = async (white, black) => {
+	const response = await fetch(`${HTTP_BASENAME}/start_new_game`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			'white': white,
+			'black': black
+		})
+	});
+
+	if (!response.ok)
+		throw new Error(await response.text());
+
+	return await response.text();
+};
 
 /**
  * @param {string} game_id
  * @param {string} move
+ * @returns {string} nothing
  */
 const update = async (game_id, move) => {
-	const response = await fetch(`${basename}/update`, {
+	const response = await fetch(`${HTTP_BASENAME}/update`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -24,20 +49,19 @@ const update = async (game_id, move) => {
 	return await response.text();
 };
 
-const start_new_game = async () => {
-	const response = await fetch(`${basename}/start_new_game`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-		})
-	});
-
-	if (!response.ok)
-		throw new Error(await response.text());
-
-	return await response.text();
+/**
+ * @returns {WebSocket} the current games playing - read only
+ */
+const games = async () => {
+	return new WebSocket(`${WS_BASENAME}/games`);
 };
 
-export { update, start_new_game };
+/**
+ * @returns {WebSocket} the human connected players - read only
+ */
+const players = async () => {
+	return new WebSocket(`${WS_BASENAME}/players`);
+};
+
+
+export { update, start_new_game, games, players };
