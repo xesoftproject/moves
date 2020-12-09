@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import List, Dict, AsyncIterator
 
@@ -83,12 +85,12 @@ class Topic:
     subscriptions: Dict[str, Subscription] = field(default_factory=dict)
     messages: List[Message] = field(default_factory=list)
 
-    def add_subscription(self, subscription: Subscription):
+    async def add_subscription(self, subscription: Subscription):
         self.subscriptions[subscription.subscription_id] = subscription
 
         # send old messages
         for message in self.messages:
-            subscription.message(message)
+            await subscription.message(message)
 
     async def message(self, message: Message):
         # save messages for future subscribers
@@ -105,41 +107,6 @@ class Broker:
     def add_topic(self, topic: Topic):
         self.topics[topic.topic_id] = topic
 
-    def add_subscription(self, topic: Topic, subscription: Subscription):
+    async def add_subscription(self, topic: Topic, subscription: Subscription):
         self.add_topic(topic)
-        self.topics[topic.topic_id].add_subscription(subscription)
-
-
-async def demo():
-    broker = Broker()
-    t1 = Topic('t1')
-    t2 = Topic('t2')
-    s1a = Subscription('s1a')
-    s1b = Subscription('s1b')
-    s2a = Subscription('s2a')
-    s2b = Subscription('s2b')
-    s2c = Subscription('s2c')
-
-    # "statically" defined
-    broker.add_topic(t1)
-    broker.add_topic(t2)
-    broker.add_subscription(t1, s1a)
-    broker.add_subscription(t1, s1b)
-    broker.add_subscription(t2, s2a)
-    broker.add_subscription(t2, s2b)
-    broker.add_subscription(t2, s2c)
-
-    # "dinamically" addedd / removed
-    p1 = Publisher('p1')
-    s1 = Subscriber('s1')
-
-    await p1.send_message_to(Message('m1'), t1)
-    await p1.send_message_to(Message('m2'), t1)
-    await p1.send_message_to(Message('m3'), t1)
-
-    async for message in s1.subscribe(s1a):
-        print(f'[{s1=}, {message=}]')
-        if message.message_id == 'm3':
-            break
-
-trio.run(demo)
+        await self.topics[topic.topic_id].add_subscription(subscription)
