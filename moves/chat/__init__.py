@@ -14,6 +14,7 @@ import quart_cors
 
 from .. import configurations
 from .. import logs
+from .. import autils
 
 
 LOGS = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ class Chat:
 
 CHATS: typing.Dict[str, Chat] = {}
 CHATS['12345'] = Chat()
+S = autils.Msc[str](0)
 
 
 async def broadcast_per_game_id(c):
@@ -76,9 +78,16 @@ async def chat() -> None:
         for chat_id in CHATS.keys():
             await quart.websocket.send(chat_id)
 
+        async with S.fork().clone() as r:
+            while True:
+                async for chat_id in r:
+                    await quart.websocket.send(chat_id)
+
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
         CHATS[chat_id] = Chat()
+        async with S.clone() as s:
+            await s.send(chat_id)
         return chat_id
 
     @app.websocket('/chat/<string:chat_id>')
