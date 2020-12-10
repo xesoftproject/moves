@@ -6,7 +6,7 @@ import typing
 def trio_test(afun: typing.Callable[..., typing.Awaitable[None]]
               ) -> typing.Callable[..., None]:
     @functools.wraps(afun)
-    def wrapper(*args, **kwargs) -> None:
+    def wrapper(*args: typing.Any, **kwargs: typing.Any) -> None:
         trio.run(afun, *args, **kwargs)
     return wrapper
 

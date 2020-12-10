@@ -1,53 +1,55 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Dict, AsyncIterator
+from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any
 
 import trio
 import math
 
+T = TypeVar('T')
 
 @dataclass()
-class Message:
+class Message(Generic[T]):
     message_id: str
+    payload: T
 
 
 @dataclass()
-class Publisher:
+class Publisher(Generic[T]):
     publisher_id: str
 
     async def send_message_to(self,
-                              message: Message,
-                              topic: 'Topic'
-                              ) -> Message:
+                              message: Message[T],
+                              topic: 'Topic[T]'
+                              ) -> Message[T]:
         return await topic.message(message)
 
 
 @dataclass()
-class Subscriber:
+class Subscriber(Generic[T]):
     subscriber_id: str
-    s: trio.MemorySendChannel[Message] = field(init=False)
-    r: trio.MemoryReceiveChannel[Message] = field(init=False)
+    s: trio.MemorySendChannel[Message[T]] = field(init=False)
+    r: trio.MemoryReceiveChannel[Message[T]] = field(init=False)
 
-    def __post_init__(self):
-        s, r = trio.open_memory_channel[Message](math.inf)
+    def __post_init__(self) -> None:
+        s, r = trio.open_memory_channel[Message[T]](math.inf)
         self.s = s
         self.r = r
 
     async def subscribe(self,
-                        subscription: 'Subscription'
-                        ) -> AsyncIterator[Message]:
+                        subscription: 'Subscription[T]'
+                        ) -> AsyncIterator[Message[T]]:
         await subscription.subscribe(self)
         async with self.r as r:
             async for message in r:
                 yield message
 
-    async def message(self, message: Message) -> Message:
+    async def message(self, message: Message[T]) -> Message[T]:
         await self.s.send(message)
         return message
 
 
-async def rr(d: Dict[str, Subscriber]) -> AsyncIterator[Subscriber]:
+async def rr(d: Dict[str, T]) -> AsyncIterator[T]:
     while True:
         try:  # TODO: good enough?
             for value in d.values():
@@ -58,16 +60,16 @@ async def rr(d: Dict[str, Subscriber]) -> AsyncIterator[Subscriber]:
 
 
 @dataclass()
-class Subscription:
+class Subscription(Generic[T]):
     subscription_id: str
-    subscribers: Dict[str, Subscriber] = field(default_factory=dict)
-    rr: AsyncIterator[Subscriber] = field(init=False)
-    messages: List[Message] = field(default_factory=list)
+    subscribers: Dict[str, Subscriber[T]] = field(default_factory=dict)
+    rr: AsyncIterator[Subscriber[T]] = field(init=False)
+    messages: List[Message[T]] = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.rr = rr(self.subscribers)
 
-    async def message(self, message: Message):
+    async def message(self, message: Message[T]) -> Message[T]:
         self.messages.append(message)
 
         # ignore self if not subscribers
@@ -78,7 +80,7 @@ class Subscription:
         subscriber = await self.rr.__anext__()
         return await subscriber.message(message)
 
-    async def subscribe(self, subscriber: Subscriber):
+    async def subscribe(self, subscriber: Subscriber[T]) -> None:
         self.subscribers[subscriber.subscriber_id] = subscriber
 
         # send old messages
@@ -87,14 +89,14 @@ class Subscription:
 
 
 @dataclass()
-class Topic:
+class Topic(Generic[T]):
     topic_id: str
-    subscriptions: Dict[str, Subscription] = field(default_factory=dict)
-    messages: List[Message] = field(default_factory=list)
+    subscriptions: Dict[str, Subscription[T]] = field(default_factory=dict)
+    messages: List[Message[T]] = field(default_factory=list)
 
     async def add_subscription(self,
-                               subscription: Subscription
-                               ) -> Subscription:
+                               subscription: Subscription[T]
+                               ) -> Subscription[T]:
         if subscription.subscription_id in self.subscriptions:
             raise KeyError(f'{subscription.subscription_id}')
 
@@ -106,7 +108,7 @@ class Topic:
 
         return subscription
 
-    async def message(self, message: Message) -> Message:
+    async def message(self, message: Message[T]) -> Message[T]:
         # save messages for future subscribers
         self.messages.append(message)
 
@@ -118,10 +120,10 @@ class Topic:
 
 @dataclass()
 class Broker:
-    topics: Dict[str, Topic] = field(default_factory=dict)
-    subscriptions: Dict[str, Subscription] = field(default_factory=dict)
+    topics: Dict[str, Topic[Any]] = field(default_factory=dict)
+    subscriptions: Dict[str, Subscription[Any]] = field(default_factory=dict)
 
-    def add_topic(self, topic: Topic) -> Topic:
+    def add_topic(self, topic: Topic[T]) -> Topic[T]:
         if topic.topic_id in self.topics:
             raise KeyError(f'{topic.topic_id}')
 
@@ -130,8 +132,8 @@ class Broker:
 
     async def add_subscription(self,
                                topic_id: str,
-                               subscription: Subscription
-                               ) -> Subscription:
+                               subscription: Subscription[T]
+                               ) -> Subscription[T]:
         if subscription.subscription_id in self.subscriptions:
             raise KeyError(f'{subscription.subscription_id}')
 
@@ -139,16 +141,16 @@ class Broker:
         return await self.topics[topic_id].add_subscription(subscription)
 
     async def send_message_to(self,
-                              publisher: Publisher,
-                              message: Message,
+                              publisher: Publisher[T],
+                              message: Message[T],
                               topic_id: str
-                              ) -> Message:
+                              ) -> Message[T]:
         return await publisher.send_message_to(message, self.topics[topic_id])
 
     async def subscribe(self,
-                        subscriber: Subscriber,
+                        subscriber: Subscriber[T],
                         subscription_id: str
-                        ) -> AsyncIterator[Message]:
+                        ) -> AsyncIterator[Message[T]]:
         subscription = self.subscriptions[subscription_id]
         async for message in subscriber.subscribe(subscription):
             yield message
