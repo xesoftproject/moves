@@ -3,6 +3,8 @@ import unittest
 from moves import triopubsub
 
 from .. import testssupport
+import trio
+import typing
 
 
 class TrioPubSubTest(unittest.TestCase):
@@ -65,39 +67,66 @@ class TrioPubSubTest(unittest.TestCase):
     @testssupport.trio_test
     async def test_demo(self):
         broker = triopubsub.Broker()
-        t1 = triopubsub.Topic('t1')
-        t2 = triopubsub.Topic('t2')
-        s1a = triopubsub.Subscription('s1a')
-        s1b = triopubsub.Subscription('s1b')
-        s2a = triopubsub.Subscription('s2a')
-        s2b = triopubsub.Subscription('s2b')
-        s2c = triopubsub.Subscription('s2c')
 
         # "statically" defined
-        broker.add_topic(t1)
-        broker.add_topic(t2)
-        await broker.add_subscription(t1, s1a)
-        await broker.add_subscription(t1, s1b)
-        await broker.add_subscription(t2, s2a)
-        await broker.add_subscription(t2, s2b)
-        await broker.add_subscription(t2, s2c)
+        broker.add_topic(triopubsub.Topic('t1'))
+        broker.add_topic(triopubsub.Topic('t2'))
+        await broker.add_subscription('t1', triopubsub.Subscription('s1a'))
+        await broker.add_subscription('t1', triopubsub.Subscription('s1b'))
+        await broker.add_subscription('t2', triopubsub.Subscription('s2a'))
+        await broker.add_subscription('t2', triopubsub.Subscription('s2b'))
+        await broker.add_subscription('t2', triopubsub.Subscription('s2c'))
 
         # "dinamically" addedd / removed
         p1 = triopubsub.Publisher('p1')
-        s1 = triopubsub.Subscriber('s1')
 
         m1 = triopubsub.Message('m1')
         m2 = triopubsub.Message('m2')
         m3 = triopubsub.Message('m3')
 
-        await p1.send_message_to(m1, t1)
-        await p1.send_message_to(m2, t1)
-        await p1.send_message_to(m3, t1)
+        await broker.send_message_to(p1, m1, 't1')
+        await broker.send_message_to(p1, m2, 't1')
+        await broker.send_message_to(p1, m3, 't1')
 
         acc = []
-        async for message in s1.subscribe(s1a):
+        async for message in broker.subscribe(triopubsub.Subscriber('s1'),
+                                              's1a'):
             acc.append(message)
-            if message.message_id == 'm3':
+            if message is m3:
                 break
 
         self.assertEqual([m1, m2, m3], acc)
+
+    @testssupport.trio_test
+    async def test_broadcast(self):
+        broker = triopubsub.Broker()
+
+        # "statically" defined
+        broker.add_topic(triopubsub.Topic('topic'))
+        await broker.add_subscription('topic',
+                                      triopubsub.Subscription('subscription1'))
+        await broker.add_subscription('topic',
+                                      triopubsub.Subscription('subscription2'))
+
+        acc: typing.Dict[str, str] = {}
+        async with trio.open_nursery() as nursery:
+            async def get_first_message(subscriber: triopubsub.Subscriber,
+                                        subscription_id: str):
+                async for message in broker.subscribe(subscriber, subscription_id):
+                    acc[subscriber.subscriber_id] = message.message_id
+                    break
+
+            nursery.start_soon(get_first_message,
+                               triopubsub.Subscriber('subscriber1'),
+                               'subscription1')
+            nursery.start_soon(get_first_message,
+                               triopubsub.Subscriber('subscriber2'),
+                               'subscription2')
+
+            await trio.sleep(0)
+            await broker.send_message_to(triopubsub.Publisher('publisher'),
+                                         triopubsub.Message('message'),
+                                         'topic')
+
+        self.assertEqual({'subscriber1': 'message', 'subscriber2': 'message'},
+                         acc)
