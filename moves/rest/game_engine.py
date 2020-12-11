@@ -5,10 +5,10 @@ import typing
 import uuid
 
 import chess
-import trio
 
+from . import constants
 from . import types
-from .. import autils
+from .. import triopubsub
 
 
 LOGS = logging.getLogger(__name__)
@@ -69,19 +69,29 @@ def handle(games: typing.Dict[str, types.GameUniverse],
                                                move=move)
 
 
-async def game_engine(receive_channel: trio.MemoryReceiveChannel[types.InputQueueElement],
-                      send_channel: typing.Union[trio.MemorySendChannel[types.OutputQueueElement],
-                                                 autils.MemorySendChannel[types.OutputQueueElement]]
-                      ) -> None:
-    async with receive_channel, send_channel:
-        LOGS.info('game_engine')
+async def game_engine(broker: triopubsub.Broker) -> None:
+    '"passive" element: wait for inputs and handle them'
 
-        # mutable multiverse
-        games: typing.Dict[str, types.GameUniverse] = {}
+    # pub/sub "infrastructure"
+    subscription = triopubsub.Subscription[types.InputQueueElement](__name__)
+    subscriber = triopubsub.Subscriber[types.InputQueueElement](__name__)
+    publisher = triopubsub.Publisher[types.OutputQueueElement](__name__)
 
-        async for input_element in receive_channel:
-            LOGS.info('input_element: %s', input_element)
+    await broker.add_subscription(constants.INPUT_TOPIC, subscription)
 
-            for output_element in handle(games, input_element):
-                LOGS.info('output_element: %s', output_element)
-                await send_channel.send(output_element)
+    # mutable multiverse
+    games: typing.Dict[str, types.GameUniverse] = {}
+
+    # main loop
+    async for input_element in broker.subscribe(subscriber, __name__):
+        LOGS.info('input_element: %s', input_element)
+
+        for output_element in handle(games, input_element.payload):
+            LOGS.info('output_element: %s', output_element)
+
+            message = triopubsub.Message[types.OutputQueueElement](__name__,
+                                                                   output_element)
+
+            await broker.send_message_to(publisher,
+                                         message,
+                                         constants.OUTPUT_TOPIC)

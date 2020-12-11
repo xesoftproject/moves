@@ -50,7 +50,7 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
                                                                 player_type=types.PlayerType.CPU))
             LOGS.info('start_new_game [input_: %s]', input_)
 
-            await send_channel.send(input_)
+            await send_channel.send_channel(input_)
             game_id = None
             async for output in receive_channel:
                 LOGS.info('start_new_game [output: %s]', output)
@@ -73,7 +73,7 @@ async def rest(send_channel: trio.MemorySendChannel[types.InputQueueElement],
                                              game_id=game_id,
                                              move=move)
 
-            app.nursery.start_soon(send_channel.send, input_)
+            app.nursery.start_soon(send_channel.send_channel, input_)
             LOGS.info('start_new_game [input_: {}]', input_)
 
             return str(input_)

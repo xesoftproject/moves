@@ -57,7 +57,7 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
                 # per ogni client connesso
                 for websocket in s.websockets:
                     # manda il messaggio a quel client
-                    await websocket.send(message)
+                    await websocket.send_channel(message)
 
         async def broadcast():
             async with trio.open_nursery() as nursery:
@@ -75,7 +75,7 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
 
             # manda mosse vecchie
             for old_move in db[game_id].moves:
-                await quart.websocket.send(old_move)
+                await quart.websocket.send_channel(old_move)
 
             # mantieni la connessione aperta (needed?)
             await trio.sleep_forever()
@@ -91,7 +91,7 @@ async def ws(receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement
                 game_id = output_element.game_universe.game_id
 
                 db[game_id].moves.append(body)
-                await db[game_id].channel[0].send(body)
+                await db[game_id].channel[0].send_channel(body)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(hypercorn.trio.serve, app, config)
