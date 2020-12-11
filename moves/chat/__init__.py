@@ -15,48 +15,23 @@ import quart_cors
 from .. import configurations
 from .. import logs
 from .. import autils
+from .. import triopubsub
 
 
 LOGS = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class Message:
+class ChatMessage:
     from_: str
     body: str
 
     @classmethod
-    def loads(cls, data: str):
+    def loads(cls: 'typing.Type[ChatMessage]', data: str) -> 'ChatMessage':
         return cls(**json.loads(data))
 
     def dumps(self) -> str:
         return json.dumps(dataclasses.asdict(self))
-
-
-@dataclasses.dataclass
-class Chat:
-    messages: typing.List[Message] = dataclasses.field(default_factory=list)
-    websockets: typing.Set[typing.Any] = dataclasses.field(default_factory=set)
-    channel = trio.open_memory_channel[Message](0)
-
-
-CHATS: typing.Dict[str, Chat] = {}
-CHATS['12345'] = Chat()
-S = autils.Msc[str](0)
-
-
-async def broadcast_per_game_id(c):
-    async for message in c.channel[1]:
-        for websocket in c.websockets:
-            await websocket.send(message.dumps())
-
-
-async def broadcast():
-    async with trio.open_nursery() as nursery:
-        while True:
-            await trio.sleep(0)
-            for c in CHATS.values():
-                nursery.start_soon(broadcast_per_game_id, c)
 
 
 async def chat() -> None:
@@ -67,6 +42,11 @@ async def chat() -> None:
     if configurations.KEYFILE:
         config.keyfile = configurations.KEYFILE
 
+    # each "chat room" is a topic. for each connection there is a subscription
+    broker = triopubsub.Broker()
+    # + there is a "chats" topic - with just the list of the topic_ids
+    chats_topic = broker.add_topic(triopubsub.Topic[str]('__chats'))
+
     app = typing.cast(quart_trio.QuartTrio,
                       quart_cors.cors(quart_trio.QuartTrio(__name__),
                                       allow_origin='*',
@@ -75,42 +55,67 @@ async def chat() -> None:
 
     @app.websocket('/chats')
     async def chats() -> None:
-        for chat_id in CHATS.keys():
-            await quart.websocket.send(chat_id)
+        'sync the currently open chats'
 
-        async with S.fork().clone() as r:
-            while True:
-                async for chat_id in r:
-                    await quart.websocket.send(chat_id)
+        await quart.websocket.accept()
+
+        subscription = await broker.add_subscription(chats_topic.topic_id,
+                                                     triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}'))
+
+        try:
+            async for message in broker.subscribe(triopubsub.Subscriber[str]('...'),
+                                                  subscription.subscription_id):
+                await quart.websocket.send(message.payload)
+        finally:
+            #             raise NotImplementedError('broker.remove_subscription')
+            print("NotImplementedError('broker.remove_subscription')")
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
-        CHATS[chat_id] = Chat()
-        async with S.clone() as s:
-            await s.send(chat_id)
+        'create a new chat'
+
+        broker.add_topic(triopubsub.Topic[ChatMessage](chat_id))
+
+        await broker.send_message_to(triopubsub.Publisher[str]('...'),
+                                     triopubsub.Message[str]('...', chat_id),
+                                     chats_topic.topic_id)
+
         return chat_id
 
     @app.websocket('/chat/<string:chat_id>')
     async def chat(chat_id: str) -> None:
-        c = CHATS[chat_id]
-        c.websockets.add(quart.websocket._get_current_object())
+        'join a chat'
 
-        # send old messages
-        for message in c.messages:
-            await quart.websocket.send(message.dumps())
+        topic = broker.topics[chat_id]
 
-        while True:
-            # new message
-            message = Message.loads(await quart.websocket.receive())
+        subscription = await broker.add_subscription(chat_id,
+                                                     triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}'))
 
-            c.messages.append(message)
+        async def send_messages() -> None:
+            publisher = triopubsub.Publisher[ChatMessage]('...')
+            while True:
+                chat_message = ChatMessage.loads(await quart.websocket.receive())
+                await broker.send_message_to(publisher,
+                                             triopubsub.Message[ChatMessage](
+                                                 '?', chat_message),
+                                             chat_id)
 
-            # notifica broadcast
-            await c.channel[0].send(message)
+        async def receive_messages() -> None:
+            subscriber = triopubsub.Subscriber[ChatMessage]('...')
 
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(hypercorn.trio.serve, app, config)
-        nursery.start_soon(broadcast)
+            async for message in broker.subscribe(subscriber,
+                                                  subscription.subscription_id):
+                await quart.websocket.send(message.payload.dumps())
+
+        try:
+            async with trio.open_nursery() as nursery:
+                nursery.start_soon(send_messages)
+                nursery.start_soon(receive_messages)
+        finally:
+            #             raise NotImplementedError('broker.remove_subscription')
+            print("raise NotImplementedError('broker.remove_subscription')")
+
+    await hypercorn.trio.serve(app, config)
 
 
 def main() -> None:

@@ -40,13 +40,14 @@ class Subscriber(Generic[T]):
                         subscription: 'Subscription[T]'
                         ) -> AsyncIterator[Message[T]]:
         await subscription.subscribe(self)
-        async with self.r as r:
+        async with self.r.clone() as r:
             async for message in r:
                 yield message
 
     async def message(self, message: Message[T]) -> Message[T]:
-        await self.s.send(message)
-        return message
+        async with self.s.clone() as s:
+            await s.send(message)
+            return message
 
 
 async def rr(d: Dict[str, T]) -> AsyncIterator[T]:
@@ -82,6 +83,9 @@ class Subscription(Generic[T]):
 
     async def subscribe(self, subscriber: Subscriber[T]) -> None:
         self.subscribers[subscriber.subscriber_id] = subscriber
+
+        if not self.messages:
+            await trio.sleep(0)
 
         # send old messages
         for message in self.messages:
