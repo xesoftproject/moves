@@ -5,8 +5,11 @@ from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any
 
 import trio
 import math
+import typing
+from _operator import sub
 
 T = TypeVar('T')
+
 
 @dataclass()
 class Message(Generic[T]):
@@ -41,13 +44,17 @@ class Subscriber(Generic[T]):
                         ) -> AsyncIterator[Message[T]]:
         await subscription.subscribe(self)
         async with self.r.clone() as r:
-            async for message in r:
+            async for message in typing.cast(trio.MemoryReceiveChannel[Message[T]], r):
                 yield message
 
     async def message(self, message: Message[T]) -> Message[T]:
         async with self.s.clone() as s:
-            await s.send(message)
+            await typing.cast(trio.MemorySendChannel[Message[T]], s).send(message)
             return message
+
+    async def aclose(self):
+        await self.s.aclose()
+        await self.r.aclose()
 
 
 async def rr(d: Dict[str, T]) -> AsyncIterator[T]:
@@ -66,6 +73,7 @@ class Subscription(Generic[T]):
     subscribers: Dict[str, Subscriber[T]] = field(default_factory=dict)
     rr: AsyncIterator[Subscriber[T]] = field(init=False)
     messages: List[Message[T]] = field(default_factory=list)
+    send_old_messages: bool = True
 
     def __post_init__(self) -> None:
         self.rr = rr(self.subscribers)
@@ -84,12 +92,20 @@ class Subscription(Generic[T]):
     async def subscribe(self, subscriber: Subscriber[T]) -> None:
         self.subscribers[subscriber.subscriber_id] = subscriber
 
-        if not self.messages:
+        # send old messages
+        if self.messages:
+            for message in self.messages:
+                await subscriber.message(message)
+        else:
             await trio.sleep(0)
 
-        # send old messages
-        for message in self.messages:
-            await subscriber.message(message)
+    async def aclose(self) -> None:
+        if self.subscribers:
+            for subscriber_id in self.subscribers:
+                await self.subscribers[subscriber_id].aclose()
+                del self.subscribers[subscriber_id]
+        else:
+            await trio.sleep(0)
 
 
 @dataclass()
@@ -107,8 +123,11 @@ class Topic(Generic[T]):
         self.subscriptions[subscription.subscription_id] = subscription
 
         # send old messages
-        for message in self.messages:
-            await subscription.message(message)
+        if subscription.send_old_messages and self.messages:
+            for message in self.messages:
+                await subscription.message(message)
+        else:
+            await trio.sleep(0)
 
         return subscription
 
@@ -120,6 +139,16 @@ class Topic(Generic[T]):
             await subscription.message(message)
 
         return message
+
+    async def remove_subscription(self,
+                                  subscription_id: str
+                                  ) -> None:
+        if subscription_id not in self.subscriptions:
+            await trio.sleep(0)
+            raise KeyError(f'{subscription_id}')
+
+        await self.subscriptions[subscription_id].aclose()
+        del self.subscriptions[subscription_id]
 
 
 @dataclass()
@@ -138,7 +167,11 @@ class Broker:
                                topic_id: str,
                                subscription: Subscription[T]
                                ) -> Subscription[T]:
+        if topic_id not in self.topics:
+            await trio.sleep(0)
+            raise KeyError(f'{topic_id}')
         if subscription.subscription_id in self.subscriptions:
+            await trio.sleep(0)
             raise KeyError(f'{subscription.subscription_id}')
 
         self.subscriptions[subscription.subscription_id] = subscription
@@ -149,12 +182,34 @@ class Broker:
                               message: Message[T],
                               topic_id: str
                               ) -> Message[T]:
+        if topic_id not in self.topics:
+            await trio.sleep(0)
+            raise KeyError(f'{topic_id}')
+
         return await publisher.send_message_to(message, self.topics[topic_id])
 
     async def subscribe(self,
                         subscriber: Subscriber[T],
                         subscription_id: str
                         ) -> AsyncIterator[Message[T]]:
+        if subscription_id not in self.subscriptions:
+            await trio.sleep(0)
+            raise KeyError(f'{subscription_id}')
+
         subscription = self.subscriptions[subscription_id]
         async for message in subscriber.subscribe(subscription):
             yield message
+
+    async def remove_subscription(self,
+                                  topic_id: str,
+                                  subscription_id: str
+                                  ) -> None:
+        if topic_id not in self.topics:
+            await trio.sleep(0)
+            raise KeyError(f'{topic_id}')
+        if subscription_id not in self.subscriptions:
+            await trio.sleep(0)
+            raise KeyError(f'{subscription_id}')
+
+        await self.topics[topic_id].remove_subscription(subscription_id)
+        del self.subscriptions[subscription_id]
