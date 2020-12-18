@@ -54,7 +54,7 @@ async def rest(broker: triopubsub.Broker) -> None:
         # attach a "temporary" subscription to the topic to retrieve the
         # game_id
         # TODO: create a "id generator" topic/service/something?
-        async def get_game_id():
+        async def get_game_id() -> None:
             game_id_subscription = await broker.add_subscription(constants.OUTPUT_TOPIC,
                                                                  triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
                                                                                                                    send_old_messages=False))
@@ -71,7 +71,7 @@ async def rest(broker: triopubsub.Broker) -> None:
                 await broker.remove_subscription(constants.OUTPUT_TOPIC,
                                                  game_id_subscription.subscription_id)
 
-        async def send_start_game():
+        async def send_start_game() -> None:
             # this is what should happen when a 'new game' endpoint is called
             # first example - cpu vs cpu
             input_element = types.InputQueueElement(command=types.Command.NEW_GAME,

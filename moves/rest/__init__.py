@@ -9,7 +9,6 @@ from . import cpu
 from . import game_engine
 from . import rest
 from . import types
-from . import ws
 from .. import autils
 from .. import logs
 from .. import triopubsub

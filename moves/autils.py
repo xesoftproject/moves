@@ -66,11 +66,12 @@ class open_memory_channel_tee(metaclass=_OpenMemoryChannelTeeMeta):
 class Msc(typing.Generic[T]):
     def __init__(self,
                  max_buffer_size: float,
-                 send_channels: typing.List[trio.MemorySendChannel[T]] = None):
+                 send_channels: typing.Optional[typing.List[trio.MemorySendChannel[T]]] = None
+                 ) -> None:
         self._max_buffer_size = max_buffer_size
         self._send_channels = send_channels or []
 
-    def fork(self) -> trio.MemoryReceiveChannel:
+    def fork(self) -> trio.MemoryReceiveChannel[T]:
         send, receive = trio.open_memory_channel[T](self._max_buffer_size)
         self._send_channels.append(send)
         return receive

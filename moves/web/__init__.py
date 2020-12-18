@@ -10,6 +10,7 @@ import trio
 
 from .. import configurations
 from .. import logs
+import typing
 
 
 LOGS = logging.getLogger(__name__)
@@ -27,7 +28,8 @@ async def web() -> None:
 
     @app.route('/')
     async def index() -> quart.Response:
-        return await quart.current_app.send_static_file('index.html')
+        return typing.cast(quart.Response,
+                           await quart.current_app.send_static_file('index.html'))
 
     @app.route('/js/configuration.js')
     async def web() -> quart.Response:

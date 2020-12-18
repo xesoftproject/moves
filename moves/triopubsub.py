@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any
+import typing
 
 import trio
-import math
-import typing
-from _operator import sub
+
 
 T = TypeVar('T')
 
@@ -52,7 +52,7 @@ class Subscriber(Generic[T]):
             await typing.cast(trio.MemorySendChannel[Message[T]], s).send(message)
             return message
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         await self.s.aclose()
         await self.r.aclose()
 
