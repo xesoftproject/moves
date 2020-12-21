@@ -45,7 +45,7 @@ async def rest(broker: triopubsub.Broker) -> None:
                                       allow_headers=['content-type']))
 
     @app.route('/start_new_game', methods=['POST'])
-    async def start_new_game() -> typing.Optional[str]:
+    async def start_new_game() -> str:
         body = await quart.request.json
         LOGS.info('start_new_game [body: %s]', body)
 
@@ -55,6 +55,7 @@ async def rest(broker: triopubsub.Broker) -> None:
         # game_id
         # TODO: create a "id generator" topic/service/something?
         async def get_game_id() -> None:
+            nonlocal game_id
             game_id_subscription = await broker.add_subscription(constants.OUTPUT_TOPIC,
                                                                  triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
                                                                                                                    send_old_messages=False))
@@ -87,6 +88,9 @@ async def rest(broker: triopubsub.Broker) -> None:
         async with trio.open_nursery() as nursery:
             nursery.start_soon(get_game_id)
             nursery.start_soon(send_start_game)
+
+        if game_id is None:
+            raise Exception('no game_id!')
 
         return game_id
 

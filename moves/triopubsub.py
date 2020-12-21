@@ -44,12 +44,12 @@ class Subscriber(Generic[T]):
                         ) -> AsyncIterator[Message[T]]:
         await subscription.subscribe(self)
         async with self.r.clone() as r:
-            async for message in typing.cast(trio.MemoryReceiveChannel[Message[T]], r):
+            async for message in typing.cast('trio.MemoryReceiveChannel[Message[T]]', r):
                 yield message
 
     async def message(self, message: Message[T]) -> Message[T]:
         async with self.s.clone() as s:
-            await typing.cast(trio.MemorySendChannel[Message[T]], s).send(message)
+            await typing.cast('trio.MemorySendChannel[Message[T]]', s).send(message)
             return message
 
     async def aclose(self) -> None:
@@ -101,7 +101,7 @@ class Subscription(Generic[T]):
 
     async def aclose(self) -> None:
         if self.subscribers:
-            for subscriber_id in self.subscribers:
+            for subscriber_id in list(self.subscribers.keys()):
                 await self.subscribers[subscriber_id].aclose()
                 del self.subscribers[subscriber_id]
         else:

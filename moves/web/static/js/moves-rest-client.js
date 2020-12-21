@@ -1,7 +1,7 @@
-import { HOSTNAME, HTTP, REST_PORT, WS, WS_PORT } from './configuration.js';
+import { HTTP, WS, HOSTNAME, REST_PORT } from './configuration.js';
 
 const HTTP_BASENAME = `${HTTP}://${HOSTNAME}:${REST_PORT}`;
-const WS_BASENAME = `${WS}://${HOSTNAME}:${WS_PORT}`;
+const WS_BASENAME = `${WS}://${HOSTNAME}:${REST_PORT}`;
 
 /**
  * @param {string} white
