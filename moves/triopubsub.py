@@ -135,7 +135,7 @@ class Topic(Generic[T]):
         # save messages for future subscribers
         self.messages.append(message)
 
-        for subscription in self.subscriptions.values():
+        for subscription in list(self.subscriptions.values()):
             await subscription.message(message)
 
         return message

@@ -52,14 +52,14 @@ const update = async (game_id, move) => {
 /**
  * @returns {WebSocket} the current games playing - read only
  */
-const games = async () => {
+const games = () => {
 	return new WebSocket(`${WS_BASENAME}/games`);
 };
 
 /**
  * @returns {WebSocket} the human connected players - read only
  */
-const players = async () => {
+const players = () => {
 	return new WebSocket(`${WS_BASENAME}/players`);
 };
 
