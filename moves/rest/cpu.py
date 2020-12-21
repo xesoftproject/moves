@@ -3,19 +3,20 @@ from __future__ import annotations
 import logging
 import typing
 
-import chess
 import chess.engine
-import trio
 
+from . import constants
 from . import types
 from .. import configurations
+from .. import triopubsub
 
 
 LOGS = logging.getLogger(__name__)
 
 
 def cpu_move(engine: chess.engine.SimpleEngine,
-             game_universe: types.GameUniverse) -> typing.Iterator[types.InputQueueElement]:
+             game_universe: types.GameUniverse
+             ) -> typing.Iterator[types.InputQueueElement]:
     try:
         result = engine.play(game_universe.board,
                              chess.engine.Limit(time=5))
@@ -56,22 +57,33 @@ def handle(engine: chess.engine.SimpleEngine,
         raise NotImplementedError()
 
 
-async def cpu(send_channel: trio.MemorySendChannel[types.InputQueueElement],
-              receive_channel: trio.MemoryReceiveChannel[types.OutputQueueElement]
-              ) -> None:
-    async with send_channel, receive_channel:
-        LOGS.info('cpu')
+async def cpu(broker: triopubsub.Broker) -> None:
+    '"passive" element: wait for inputs and handle them'
 
-        try:
-            engine = chess.engine.SimpleEngine.popen_uci(
-                configurations.STOCKFISH)
-        except:
-            LOGS.error('configurations.STOCKFISH: %s',
-                       configurations.STOCKFISH)
-            raise
+    # pub/sub "infrastructure"
+    subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
+    subscriber = triopubsub.Subscriber[types.OutputQueueElement](__name__)
+    publisher = triopubsub.Publisher[types.InputQueueElement](__name__)
 
-        async for output_element in receive_channel:
-            LOGS.info('output_element: %s', output_element)
+    await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
 
-            for input_element in handle(engine, output_element):
-                await send_channel.send(input_element)
+    # IA
+    try:
+        engine = chess.engine.SimpleEngine.popen_uci(configurations.STOCKFISH)
+    except:
+        LOGS.error('configurations.STOCKFISH: %s', configurations.STOCKFISH)
+        raise
+
+    # main loop
+    async for output_element in broker.subscribe(subscriber, __name__):
+        LOGS.info('output_element: %s', output_element)
+
+        for input_element in handle(engine, output_element.payload):
+            LOGS.info('input_element: %s', input_element)
+
+            message = triopubsub.Message[types.InputQueueElement](__name__,
+                                                                  input_element)
+
+            await broker.send_message_to(publisher,
+                                         message,
+                                         constants.INPUT_TOPIC)

@@ -8,23 +8,37 @@
 </head>
 <body>
     <h1>xesoft chess</h1>
+    <hr />
+    <h2>I am</h2>
+    <p class="i_am"></p>
+    <hr />
     <h2>start new game</h2>
-    <p>
-        <span>player 1 - TODO</span><input type="radio" name="player1"
-            value="human" checked="checked" disabled="disabled"
-        /><input type="radio" name="player1" value="cpu"
-            disabled="disabled"
-        />
-    </p>
-    <p>
-        <span>player 2 - TODO</span><input type="radio" name="player2"
-            value="human" disabled="disabled"
-        /><input type="radio" name="player2" value="human"
-            checked="checked" disabled="disabled"
-        />
-    </p>
+    <dl>
+        <dt>white</dt>
+        <dd>
+            <label><input type="radio" name="white"
+                value="human"
+            />Human</label><br /> <label><input type="radio"
+                name="white" value="cpu"
+            />CPU</label>
+        </dd>
+        <dt>black</dt>
+        <dd>
+            <label><input type="radio" name="black"
+                value="human"
+            />Human</label> <br /> <label><input type="radio"
+                name="black" value="cpu"
+            />CPU</label>
+        </dd>
+    </dl>
     <p>
         <button id="start_new_game">start new game</button>
     </p>
+    <hr />
+    <h2>Open games</h2>
+    <ul id="games"></ul>
+    <hr />
+    <h2>Players online</h2>
+    <ul id="players"></ul>
 </body>
 </html>

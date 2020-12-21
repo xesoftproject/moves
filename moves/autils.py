@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import types
 import typing
 
 import trio
-import types
 
 
 T = typing.TypeVar('T')
@@ -61,3 +61,41 @@ class open_memory_channel_tee(metaclass=_OpenMemoryChannelTeeMeta):
             output_receives.append(output_receive)
 
         return MemorySendChannel[T](output_sends), output_receives
+
+
+class Msc(typing.Generic[T]):
+    def __init__(self,
+                 max_buffer_size: float,
+                 send_channels: typing.Optional[typing.List[trio.MemorySendChannel[T]]] = None
+                 ) -> None:
+        self._max_buffer_size = max_buffer_size
+        self._send_channels = send_channels or []
+
+    def fork(self) -> trio.MemoryReceiveChannel[T]:
+        send, receive = trio.open_memory_channel[T](self._max_buffer_size)
+        self._send_channels.append(send)
+        return receive
+
+    def clone(self) -> 'Msc[T]':
+        return Msc[T](self._max_buffer_size,
+                      [channel.clone() for channel in self._send_channels])
+
+    async def send(self, value: T) -> None:
+        for channel in self._send_channels:
+            await channel.send(value)
+
+    async def __aenter__(self) -> 'Msc[T]':
+        return Msc[T](self._max_buffer_size,
+                      [await channel.__aenter__() for channel in self._send_channels])
+
+    async def __aexit__(self,
+                        exc_type: typing.Type[Exception],
+                        exc_value: Exception,
+                        traceback: types.TracebackType
+                        ) -> None:
+        for channel in reversed(self._send_channels):
+            await channel.__aexit__(exc_type, exc_value, traceback)
+
+    async def aclose(self) -> None:
+        for channel in reversed(self._send_channels):
+            await channel.aclose()

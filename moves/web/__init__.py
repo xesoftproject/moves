@@ -10,14 +10,13 @@ import trio
 
 from .. import configurations
 from .. import logs
+import typing
 
 
 LOGS = logging.getLogger(__name__)
 
 
-def main() -> None:
-    logs.setup_logs(__name__)
-
+async def web() -> None:
     config = hypercorn.config.Config()
     config.bind = [f'0.0.0.0:{configurations.WEB_PORT}']
     if configurations.CERTFILE:
@@ -29,7 +28,8 @@ def main() -> None:
 
     @app.route('/')
     async def index() -> quart.Response:
-        return await quart.current_app.send_static_file('index.html')
+        return typing.cast(quart.Response,
+                           await quart.current_app.send_static_file('index.html'))
 
     @app.route('/js/configuration.js')
     async def web() -> quart.Response:
@@ -38,4 +38,10 @@ def main() -> None:
         return quart.Response(body,
                               mimetype='application/javascript; charset=utf-8')
 
-    trio.run(hypercorn.trio.serve, app, config)
+    await hypercorn.trio.serve(app, config)
+
+
+def main() -> None:
+    logs.setup_logs(__name__)
+
+    trio.run(web)
