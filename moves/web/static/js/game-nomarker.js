@@ -3,9 +3,8 @@
 const STEP = .06;
 const STEP_DURATION = 1000;
 
-import { subscribe } from './moves-stomp-client.js';
-import { queryparams, sleep } from './commons.js'
-import { GAME_ID } from './constants.js';
+import { sleep } from './commons.js';
+
 
 /**
  * @param {string} from
@@ -89,16 +88,12 @@ const move = async ({ move }) => {
 
 
 const run = async () => {
-	// page requirement: ?game_id=xxx
-	const game_id = queryparams()[GAME_ID][0];
-	if (!game_id) {
-		location.replace('index.html?error=nogameid');
-		throw new Error();
+	for (const mv of [
+		'f2f3', 'e7e5', 'g2g4', 'd8h4',
+	]) {
+		await sleep(.01);
+		await move({ move: mv });
 	}
-
-	console.log('game_id: %o', game_id);
-
-	await subscribe(game_id, move);
 };
 
 const init = async () => {
