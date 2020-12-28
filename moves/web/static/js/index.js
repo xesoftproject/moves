@@ -1,15 +1,18 @@
 'use strict';
 
-import { queryparams } from './commons.js';
+import { get_query_param } from './commons.js';
 import { QUERY_PARAMS_I_AM } from './constants.js';
 import { start_new_game, games, players } from './moves-rest-client.js';
 
 
 // TODO identify the user by cookie / hw analysis
-const I_AM = queryparams()[QUERY_PARAMS_I_AM][0];
-if (!I_AM) {
+let I_AM;
+try {
+	I_AM = get_query_param(QUERY_PARAMS_I_AM);
+}
+catch (error) {
 	window.alert('no I_AM!');
-	throw new Error();
+	throw error;
 }
 
 const join = (game_id) => {
@@ -46,13 +49,6 @@ const onload = async () => {
 		li.appendChild(a);
 		document.querySelector('#games').appendChild(li);
 	});
-
-	const ws_players = players();
-	ws_players.onmessage = (event) => {
-		const li = document.createElement('li');
-		li.textContent = event.data;
-		document.querySelector('#players').appendChild(li);
-	};
 };
 
 const main = () => {
