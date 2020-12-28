@@ -63,9 +63,9 @@ async def chat() -> None:
                                                      triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}'))
 
         try:
-            async for message in broker.subscribe(triopubsub.Subscriber[str]('...'),
+            async for message in broker.subscribe(triopubsub.Subscriber[str](),
                                                   subscription.subscription_id):
-                await quart.websocket.send(message.payload)
+                await quart.websocket.send(message)
         finally:
             #             raise NotImplementedError('broker.remove_subscription')
             print("NotImplementedError('broker.remove_subscription')")
@@ -76,8 +76,8 @@ async def chat() -> None:
 
         broker.add_topic(triopubsub.Topic[ChatMessage](chat_id))
 
-        await broker.send_message_to(triopubsub.Publisher[str]('...'),
-                                     triopubsub.Message[str]('...', chat_id),
+        await broker.send_message_to(triopubsub.Publisher[str](),
+                                     chat_id,
                                      chats_topic.topic_id)
 
         return chat_id
@@ -92,20 +92,17 @@ async def chat() -> None:
                                                      triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}'))
 
         async def send_messages() -> None:
-            publisher = triopubsub.Publisher[ChatMessage]('...')
+            publisher = triopubsub.Publisher[ChatMessage]()
             while True:
                 chat_message = ChatMessage.loads(await quart.websocket.receive())
-                await broker.send_message_to(publisher,
-                                             triopubsub.Message[ChatMessage](
-                                                 '?', chat_message),
-                                             chat_id)
+                await broker.send_message_to(publisher, chat_message, chat_id)
 
         async def receive_messages() -> None:
-            subscriber = triopubsub.Subscriber[ChatMessage]('...')
+            subscriber = triopubsub.Subscriber[ChatMessage]()
 
             async for message in broker.subscribe(subscriber,
                                                   subscription.subscription_id):
-                await quart.websocket.send(message.payload.dumps())
+                await quart.websocket.send(message.dumps())
 
         try:
             async with trio.open_nursery() as nursery:

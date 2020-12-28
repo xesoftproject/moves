@@ -34,10 +34,10 @@ async def rest(broker: triopubsub.Broker) -> None:
     # pub/sub "infrastructure"
     subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
     # publisher can be reused
-    publisher = triopubsub.Publisher[types.InputQueueElement](__name__)
+    publisher = triopubsub.Publisher[types.InputQueueElement]()
 
     topic_games = broker.add_topic(triopubsub.Topic[str]('games'))
-    publisher_games = triopubsub.Publisher[str]('games')
+    publisher_games = triopubsub.Publisher[str]()
 
     await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
     # TODO: move to a topic per game?
@@ -71,9 +71,9 @@ async def rest(broker: triopubsub.Broker) -> None:
                                                                  triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
                                                                                                                    send_old_messages=False))
             try:
-                async for game_id_message in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](__name__),
+                async for game_id_message in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](),
                                                               game_id_subscription.subscription_id):
-                    output_element = game_id_message.payload
+                    output_element = game_id_message
                     LOGS.info('output_element: %s', output_element)
                     if output_element.result != types.Result.GAME_CREATED:
                         continue
@@ -90,9 +90,9 @@ async def rest(broker: triopubsub.Broker) -> None:
                                                         body['white']),
                                                     black=player(body['black']))
             LOGS.info('start_new_game [input_element: %s]', input_element)
-            message = triopubsub.Message[types.InputQueueElement](__name__,
-                                                                  input_element)
-            await broker.send_message_to(publisher, message, constants.INPUT_TOPIC)
+            await broker.send_message_to(publisher,
+                                         input_element,
+                                         constants.INPUT_TOPIC)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(get_game_id)
@@ -102,7 +102,7 @@ async def rest(broker: triopubsub.Broker) -> None:
             raise Exception('no game_id!')
 
         await broker.send_message_to(publisher_games,
-                                     triopubsub.Message[str]('', game_id),
+                                     game_id,
                                      topic_games.topic_id)
 
         return game_id
@@ -118,11 +118,9 @@ async def rest(broker: triopubsub.Broker) -> None:
         input_element = types.InputQueueElement(command=types.Command.MOVE,
                                                 game_id=game_id,
                                                 move=move)
-        message = triopubsub.Message[types.InputQueueElement](__name__,
-                                                              input_element)
 
         app.nursery.start_soon(broker.send_message_to,
-                               message,
+                               input_element,
                                constants.INPUT_TOPIC)
         LOGS.info('start_new_game [input_element: %s]', input_element)
 
@@ -132,9 +130,8 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
-        async for message in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](__name__),
-                                              subscription.subscription_id):
-            output_element = message.payload
+        async for output_element in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](),
+                                                     subscription.subscription_id):
             LOGS.info('output_element: %s', output_element)
 
             if game_id != output_element.game_universe.game_id:
@@ -154,9 +151,8 @@ async def rest(broker: triopubsub.Broker) -> None:
         games_subscription = await broker.add_subscription(topic_games.topic_id,
                                                            triopubsub.Subscription[str]('games_TODOUNIQ'))
 
-        async for message in broker.subscribe(triopubsub.Subscriber[str](__name__),
+        async for game_id in broker.subscribe(triopubsub.Subscriber[str](),
                                               games_subscription.subscription_id):
-            game_id = message.payload
             LOGS.info('game_id: %s', game_id)
 
             await quart.websocket.send(game_id)

@@ -1,55 +1,41 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-import math
-from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any
-import typing
+from math import inf
+from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Set
 
-import trio
+from trio import open_memory_channel, sleep
 
 
 T = TypeVar('T')
+Message = TypeVar('Message')
 
 
-@dataclass()
-class Message(Generic[T]):
-    message_id: str
-    payload: T
-
-
-@dataclass()
-class Publisher(Generic[T]):
-    publisher_id: str
-
+class Publisher(Generic[Message]):
     async def send_message_to(self,
-                              message: Message[T],
-                              topic: 'Topic[T]'
-                              ) -> Message[T]:
+                              message: Message,
+                              topic: 'Topic[Message]'
+                              ) -> Message:
         return await topic.message(message)
 
 
-@dataclass()
-class Subscriber(Generic[T]):
-    subscriber_id: str
-    s: trio.MemorySendChannel[Message[T]] = field(init=False)
-    r: trio.MemoryReceiveChannel[Message[T]] = field(init=False)
-
-    def __post_init__(self) -> None:
-        s, r = trio.open_memory_channel[Message[T]](math.inf)
+class Subscriber(Generic[Message]):
+    def __init__(self) -> None:
+        s, r = open_memory_channel[Message](inf)
         self.s = s
         self.r = r
 
     async def subscribe(self,
-                        subscription: 'Subscription[T]'
-                        ) -> AsyncIterator[Message[T]]:
+                        subscription: 'Subscription[Message]'
+                        ) -> AsyncIterator[Message]:
         await subscription.subscribe(self)
         async with self.r.clone() as r:
-            async for message in typing.cast('trio.MemoryReceiveChannel[Message[T]]', r):
+            async for message in r:
                 yield message
 
-    async def message(self, message: Message[T]) -> Message[T]:
+    async def message(self, message: Message) -> Message:
         async with self.s.clone() as s:
-            await typing.cast('trio.MemorySendChannel[Message[T]]', s).send(message)
+            await s.send(message)
             return message
 
     async def aclose(self) -> None:
@@ -57,66 +43,67 @@ class Subscriber(Generic[T]):
         await self.r.aclose()
 
 
-async def rr(d: Dict[str, T]) -> AsyncIterator[T]:
+async def rr(ts: Set[T]) -> AsyncIterator[T]:
     while True:
         try:  # TODO: good enough?
-            for value in d.values():
-                yield value
+            for t in ts:
+                yield t
         except RuntimeError:
             pass
-        await trio.sleep(0)
+        await sleep(0)
 
 
 @dataclass()
-class Subscription(Generic[T]):
+class Subscription(Generic[Message]):
     subscription_id: str
-    subscribers: Dict[str, Subscriber[T]] = field(default_factory=dict)
-    rr: AsyncIterator[Subscriber[T]] = field(init=False)
-    messages: List[Message[T]] = field(default_factory=list)
+    subscribers: Set[Subscriber[Message]] = field(default_factory=set)
+    rr: AsyncIterator[Subscriber[Message]] = field(init=False)
+    messages: List[Message] = field(default_factory=list)
     send_old_messages: bool = True
 
     def __post_init__(self) -> None:
         self.rr = rr(self.subscribers)
 
-    async def message(self, message: Message[T]) -> Message[T]:
+    async def message(self, message: Message) -> Message:
         self.messages.append(message)
 
         # ignore self if not subscribers
         if not self.subscribers:
-            await trio.sleep(0)
+            await sleep(0)
             return message
 
         subscriber = await self.rr.__anext__()
         return await subscriber.message(message)
 
-    async def subscribe(self, subscriber: Subscriber[T]) -> None:
-        self.subscribers[subscriber.subscriber_id] = subscriber
+    async def subscribe(self, subscriber: Subscriber[Message]) -> None:
+        self.subscribers.add(subscriber)
 
         # send old messages
         if self.messages:
             for message in self.messages:
                 await subscriber.message(message)
         else:
-            await trio.sleep(0)
+            await sleep(0)
 
     async def aclose(self) -> None:
         if self.subscribers:
-            for subscriber_id in list(self.subscribers.keys()):
-                await self.subscribers[subscriber_id].aclose()
-                del self.subscribers[subscriber_id]
+            for subscriber in list(self.subscribers):  # always loop on a copy
+                await subscriber.aclose()
+            self.subscribers.clear()
         else:
-            await trio.sleep(0)
+            await sleep(0)
 
 
 @dataclass()
-class Topic(Generic[T]):
+class Topic(Generic[Message]):
     topic_id: str
-    subscriptions: Dict[str, Subscription[T]] = field(default_factory=dict)
-    messages: List[Message[T]] = field(default_factory=list)
+    subscriptions: Dict[str, Subscription[Message]
+                        ] = field(default_factory=dict)
+    messages: List[Message] = field(default_factory=list)
 
     async def add_subscription(self,
-                               subscription: Subscription[T]
-                               ) -> Subscription[T]:
+                               subscription: Subscription[Message]
+                               ) -> Subscription[Message]:
         if subscription.subscription_id in self.subscriptions:
             raise KeyError(f'{subscription.subscription_id}')
 
@@ -127,11 +114,11 @@ class Topic(Generic[T]):
             for message in self.messages:
                 await subscription.message(message)
         else:
-            await trio.sleep(0)
+            await sleep(0)
 
         return subscription
 
-    async def message(self, message: Message[T]) -> Message[T]:
+    async def message(self, message: Message) -> Message:
         # save messages for future subscribers
         self.messages.append(message)
 
@@ -144,7 +131,7 @@ class Topic(Generic[T]):
                                   subscription_id: str
                                   ) -> None:
         if subscription_id not in self.subscriptions:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{subscription_id}')
 
         await self.subscriptions[subscription_id].aclose()
@@ -156,7 +143,7 @@ class Broker:
     topics: Dict[str, Topic[Any]] = field(default_factory=dict)
     subscriptions: Dict[str, Subscription[Any]] = field(default_factory=dict)
 
-    def add_topic(self, topic: Topic[T]) -> Topic[T]:
+    def add_topic(self, topic: Topic[Message]) -> Topic[Message]:
         if topic.topic_id in self.topics:
             raise KeyError(f'{topic.topic_id}')
 
@@ -165,35 +152,35 @@ class Broker:
 
     async def add_subscription(self,
                                topic_id: str,
-                               subscription: Subscription[T]
-                               ) -> Subscription[T]:
+                               subscription: Subscription[Message]
+                               ) -> Subscription[Message]:
         if topic_id not in self.topics:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{topic_id}')
         if subscription.subscription_id in self.subscriptions:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{subscription.subscription_id}')
 
         self.subscriptions[subscription.subscription_id] = subscription
         return await self.topics[topic_id].add_subscription(subscription)
 
     async def send_message_to(self,
-                              publisher: Publisher[T],
-                              message: Message[T],
+                              publisher: Publisher[Message],
+                              message: Message,
                               topic_id: str
-                              ) -> Message[T]:
+                              ) -> Message:
         if topic_id not in self.topics:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{topic_id}')
 
         return await publisher.send_message_to(message, self.topics[topic_id])
 
     async def subscribe(self,
-                        subscriber: Subscriber[T],
+                        subscriber: Subscriber[Message],
                         subscription_id: str
-                        ) -> AsyncIterator[Message[T]]:
+                        ) -> AsyncIterator[Message]:
         if subscription_id not in self.subscriptions:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{subscription_id}')
 
         subscription = self.subscriptions[subscription_id]
@@ -205,10 +192,10 @@ class Broker:
                                   subscription_id: str
                                   ) -> None:
         if topic_id not in self.topics:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{topic_id}')
         if subscription_id not in self.subscriptions:
-            await trio.sleep(0)
+            await sleep(0)
             raise KeyError(f'{subscription_id}')
 
         await self.topics[topic_id].remove_subscription(subscription_id)

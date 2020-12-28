@@ -74,8 +74,8 @@ async def game_engine(broker: triopubsub.Broker) -> None:
 
     # pub/sub "infrastructure"
     subscription = triopubsub.Subscription[types.InputQueueElement](__name__)
-    subscriber = triopubsub.Subscriber[types.InputQueueElement](__name__)
-    publisher = triopubsub.Publisher[types.OutputQueueElement](__name__)
+    subscriber = triopubsub.Subscriber[types.InputQueueElement]()
+    publisher = triopubsub.Publisher[types.OutputQueueElement]()
 
     await broker.add_subscription(constants.INPUT_TOPIC, subscription)
 
@@ -86,12 +86,9 @@ async def game_engine(broker: triopubsub.Broker) -> None:
     async for input_element in broker.subscribe(subscriber, __name__):
         LOGS.info('input_element: %s', input_element)
 
-        for output_element in handle(games, input_element.payload):
+        for output_element in handle(games, input_element):
             LOGS.info('output_element: %s', output_element)
 
-            message = triopubsub.Message[types.OutputQueueElement](__name__,
-                                                                   output_element)
-
             await broker.send_message_to(publisher,
-                                         message,
+                                         output_element,
                                          constants.OUTPUT_TOPIC)
