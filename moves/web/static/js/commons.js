@@ -46,4 +46,34 @@ const get_query_param = (key, location = window.location) => {
 const sleep = async (ms) => await new Promise(r => setTimeout(_ => r(null), ms));
 
 
-export { queryparams, get_query_param, sleep };
+/**
+ * convert a websocket to an async generator
+ * @param {WebSocket} ws
+ */
+const messages = async function*(ws) {
+	let ws_open = ws.readyState === WebSocket.OPEN;
+	ws.addEventListener('close', _ => {
+		ws_open = false;
+	});
+	ws.addEventListener('open', _ => {
+		ws_open = true;
+	});
+	ws.addEventListener('error', console.error);
+	ws.addEventListener('error', _ => {
+		ws_open = false;
+	});
+
+	do {
+		yield await new Promise((resolve, _) => {
+			const cb = (event) => {
+				resolve(event.data);
+				ws.removeEventListener('message', cb);
+			};
+			ws.addEventListener('message', cb);
+		});
+	}
+	while (ws_open);
+};
+
+
+export { queryparams, get_query_param, sleep, messages };

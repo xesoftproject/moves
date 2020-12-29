@@ -2,7 +2,7 @@
 
 import { get_query_param } from './commons.js';
 import { QUERY_PARAMS_I_AM } from './constants.js';
-import { start_new_game, games, players } from './moves-rest-client.js';
+import { start_new_game, games } from './moves-rest-client.js';
 
 
 // TODO identify the user by cookie / hw analysis
@@ -31,24 +31,20 @@ const onload = async () => {
 		console.log('game_id: %o', game_id);
 	});
 
-	const ws_games = games();
-	ws_games.addEventListener('open', (event) => {
-		console.log('open(event: %o)', event);
-	});
-	ws_games.addEventListener('message', (event) => {
-		console.log('message(event: %o)', event);
+	for await (const game of games()) {
+		console.log('[game: %o]', game);
 
 		const a = document.createElement('a');
 		a.setAttribute('href', `#`);
-		a.textContent = event.data;
+		a.textContent = game;
 		a.addEventListener('click', (e) => {
 			e.preventDefault();
-			join(event.data);
+			join(game);
 		});
 		const li = document.createElement('li');
 		li.appendChild(a);
 		document.querySelector('#games').appendChild(li);
-	});
+	}
 };
 
 const main = () => {

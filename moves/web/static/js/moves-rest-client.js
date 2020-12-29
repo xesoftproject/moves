@@ -1,4 +1,5 @@
 import { HTTP, WS, HOSTNAME, REST_PORT } from './configuration.js';
+import { messages } from './commons.js';
 
 const HTTP_BASENAME = `${HTTP}://${HOSTNAME}:${REST_PORT}`;
 const WS_BASENAME = `${WS}://${HOSTNAME}:${REST_PORT}`;
@@ -27,17 +28,20 @@ const start_new_game = async (white, black) => {
 };
 
 /**
+ * send a move to a game
+ * 
  * @param {string} game_id
  * @param {string} move
  * @returns {string} nothing
  */
-const update = async (game_id, move) => {
+const update = async (i_am, game_id, move) => {
 	const response = await fetch(`${HTTP_BASENAME}/update`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({
+			i_am: i_am,
 			game_id: game_id,
 			move: move
 		})
@@ -50,18 +54,10 @@ const update = async (game_id, move) => {
 };
 
 /**
- * @returns {WebSocket} the current games playing - read only
+ * @returns async interator with the games
  */
 const games = () => {
-	return new WebSocket(`${WS_BASENAME}/games`);
+	return messages(new WebSocket(`${WS_BASENAME}/games`));
 };
 
-/**
- * @returns {WebSocket} the human connected players - read only
- */
-const players = () => {
-	return new WebSocket(`${WS_BASENAME}/players`);
-};
-
-
-export { update, start_new_game, games, players };
+export { update, start_new_game, games };

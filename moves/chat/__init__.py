@@ -66,8 +66,8 @@ async def chat() -> None:
                                                   subscription.subscription_id):
                 await quart.websocket.send(message)
         finally:
-            broker.remove_subscription(chats_topic.topic_id,
-                                       subscription.subscription_id)
+            await broker.remove_subscription(chats_topic.topic_id,
+                                             subscription.subscription_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
@@ -108,8 +108,8 @@ async def chat() -> None:
                 nursery.start_soon(send_messages)
                 nursery.start_soon(receive_messages)
         finally:
-            broker.remove_subscription(topic.topic_id,
-                                       subscription.subscription_id)
+            await broker.remove_subscription(topic.topic_id,
+                                             subscription.subscription_id)
 
     await hypercorn.trio.serve(app, config)
 

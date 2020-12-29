@@ -1,4 +1,4 @@
-import { queryparams } from './commons.js';
+import { queryparams, messages } from './commons.js';
 import { QUERY_PARAMS_I_AM, PATH_CHAT, QUERY_PARAMS_CHAT_ID } from './constants.js';
 import { chats, create_chat } from './moves-chat-client.js';
 
@@ -9,7 +9,7 @@ if (!I_AM) {
 	throw new Error();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 	document.querySelector('h2').textContent = I_AM;
 
 	const ws_chats = chats();
@@ -27,4 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		await create_chat(document.querySelector('input').value);
 	});
+
+
+	for await (const message of messages(chats())) {
+		console.log('xxx', message);
+	}
 });
