@@ -61,14 +61,13 @@ async def chat() -> None:
 
         subscription = await broker.add_subscription(chats_topic.topic_id,
                                                      triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}'))
-
         try:
             async for message in broker.subscribe(triopubsub.Subscriber[str](),
                                                   subscription.subscription_id):
                 await quart.websocket.send(message)
         finally:
-            #             raise NotImplementedError('broker.remove_subscription')
-            print("NotImplementedError('broker.remove_subscription')")
+            broker.remove_subscription(chats_topic.topic_id,
+                                       subscription.subscription_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
@@ -109,8 +108,8 @@ async def chat() -> None:
                 nursery.start_soon(send_messages)
                 nursery.start_soon(receive_messages)
         finally:
-            #             raise NotImplementedError('broker.remove_subscription')
-            print("raise NotImplementedError('broker.remove_subscription')")
+            broker.remove_subscription(topic.topic_id,
+                                       subscription.subscription_id)
 
     await hypercorn.trio.serve(app, config)
 
