@@ -77,16 +77,13 @@ class TrioPubSubTest(unittest.TestCase):
         await broker.add_subscription('t2', triopubsub.Subscription('s2b'))
         await broker.add_subscription('t2', triopubsub.Subscription('s2c'))
 
-        # "dinamically" addedd / removed
-        p1 = triopubsub.Publisher[str]()
-
         m1 = 'payload1'
         m2 = 'payload2'
         m3 = 'payload3'
 
-        await broker.send_message_to(p1, m1, 't1')
-        await broker.send_message_to(p1, m2, 't1')
-        await broker.send_message_to(p1, m3, 't1')
+        await broker.send_message_to(m1, 't1')
+        await broker.send_message_to(m2, 't1')
+        await broker.send_message_to(m3, 't1')
 
         acc = []
         async for message in broker.subscribe(triopubsub.Subscriber[str](),
@@ -124,9 +121,7 @@ class TrioPubSubTest(unittest.TestCase):
             nursery.start_soon(get_first_message, subscriber2, 'subscription2')
 
             await trio.sleep(0)
-            await broker.send_message_to(triopubsub.Publisher[str](),
-                                         'message',
-                                         'topic')
+            await broker.send_message_to('message', 'topic')
 
         self.assertEqual({subscriber1: 'message', subscriber2: 'message'},
                          acc)

@@ -2,21 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import inf
-from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Set
+from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Set, cast
 
 from trio import open_memory_channel, sleep
 
 
 T = TypeVar('T')
 Message = TypeVar('Message')
-
-
-class Publisher(Generic[Message]):
-    async def send_message_to(self,
-                              message: Message,
-                              topic: 'Topic[Message]'
-                              ) -> Message:
-        return await topic.message(message)
 
 
 class Subscriber(Generic[Message]):
@@ -164,16 +156,12 @@ class Broker:
         self.subscriptions[subscription.subscription_id] = subscription
         return await self.topics[topic_id].add_subscription(subscription)
 
-    async def send_message_to(self,
-                              publisher: Publisher[Message],
-                              message: Message,
-                              topic_id: str
-                              ) -> Message:
+    async def send_message_to(self, message: Message, topic_id: str) -> Message:
         if topic_id not in self.topics:
             await sleep(0)
             raise KeyError(f'{topic_id}')
 
-        return await publisher.send_message_to(message, self.topics[topic_id])
+        return await cast(Topic[Message], self.topics[topic_id]).message(message)
 
     async def subscribe(self,
                         subscriber: Subscriber[Message],

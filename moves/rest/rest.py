@@ -33,11 +33,8 @@ async def rest(broker: triopubsub.Broker) -> None:
 
     # pub/sub "infrastructure"
     subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
-    # publisher can be reused
-    publisher = triopubsub.Publisher[types.InputQueueElement]()
 
     topic_games = broker.add_topic(triopubsub.Topic[str]('games'))
-    publisher_games = triopubsub.Publisher[str]()
 
     await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
     # TODO: move to a topic per game?
@@ -90,9 +87,7 @@ async def rest(broker: triopubsub.Broker) -> None:
                                                         body['white']),
                                                     black=player(body['black']))
             LOGS.info('start_new_game [input_element: %s]', input_element)
-            await broker.send_message_to(publisher,
-                                         input_element,
-                                         constants.INPUT_TOPIC)
+            await broker.send_message_to(input_element, constants.INPUT_TOPIC)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(get_game_id)
@@ -101,9 +96,7 @@ async def rest(broker: triopubsub.Broker) -> None:
         if game_id is None:
             raise Exception('no game_id!')
 
-        await broker.send_message_to(publisher_games,
-                                     game_id,
-                                     topic_games.topic_id)
+        await broker.send_message_to(game_id, topic_games.topic_id)
 
         return game_id
 

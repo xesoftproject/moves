@@ -75,9 +75,7 @@ async def chat() -> None:
 
         broker.add_topic(triopubsub.Topic[ChatMessage](chat_id))
 
-        await broker.send_message_to(triopubsub.Publisher[str](),
-                                     chat_id,
-                                     chats_topic.topic_id)
+        await broker.send_message_to(chat_id, chats_topic.topic_id)
 
         return chat_id
 
@@ -91,10 +89,9 @@ async def chat() -> None:
                                                      triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}'))
 
         async def send_messages() -> None:
-            publisher = triopubsub.Publisher[ChatMessage]()
             while True:
                 chat_message = ChatMessage.loads(await quart.websocket.receive())
-                await broker.send_message_to(publisher, chat_message, chat_id)
+                await broker.send_message_to(chat_message, chat_id)
 
         async def receive_messages() -> None:
             subscriber = triopubsub.Subscriber[ChatMessage]()
