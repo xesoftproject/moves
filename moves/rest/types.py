@@ -24,7 +24,7 @@ class GameUniverse:
     game_id: str
     board: chess.Board
     white: Player
-    black: Player
+    black: typing.Optional[Player]
 
 
 class Command(enum.Enum):

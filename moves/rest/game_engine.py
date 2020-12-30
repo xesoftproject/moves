@@ -23,7 +23,7 @@ def handle(games: typing.Dict[str, types.GameUniverse],
         game_id = str(uuid.uuid4())
         board = chess.Board()
         white = typing.cast(types.Player, input_element.white)
-        black = typing.cast(types.Player, input_element.black)
+        black = input_element.black
 
         game_universe = types.GameUniverse(game_id=game_id,
                                            board=board,

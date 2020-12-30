@@ -47,7 +47,7 @@ def handle(engine: chess.engine.SimpleEngine,
         game_universe = output_element.game_universe
 
         if ((game_universe.board.turn == chess.WHITE and game_universe.white.player_type == types.PlayerType.CPU) or
-                (game_universe.board.turn == chess.BLACK and game_universe.black.player_type == types.PlayerType.CPU)):
+                (game_universe.board.turn == chess.BLACK and game_universe.black is not None and game_universe.black.player_type == types.PlayerType.CPU)):
             yield from cpu_move(engine, game_universe)
 
     if output_element.result == types.Result.END_GAME:

@@ -7,7 +7,7 @@ const WS_BASENAME = `${WS}://${HOSTNAME}:${REST_PORT}`;
 /**
  * @param {string} white
  * @param {string} black
- * @returns {string} the game id
+ * @returns {Promise<string>} the game id
  */
 const start_new_game = async (white, black) => {
 	const response = await fetch(`${HTTP_BASENAME}/start_new_game`, {

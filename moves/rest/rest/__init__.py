@@ -11,21 +11,16 @@ import quart_cors
 import quart_trio
 import trio
 
-from . import constants
-from . import types
-from .. import configurations
-from .. import triopubsub
+from .. import constants
+from .. import types
+from ... import configurations
+from ... import triopubsub
+from . import types as rest_types
+import uuid
+from uuid import uuid4
 
 
 LOGS = logging.getLogger(__name__)
-
-
-def player(type_: str) -> types.Player:
-    'use client "type_" to choose a player'
-    return {
-        'cpu': types.Player(player_id='cpu', player_type=types.PlayerType.CPU),
-        'human': types.Player(player_id='human', player_type=types.PlayerType.HUMAN)
-    }[type_]
 
 
 async def rest(broker: triopubsub.Broker) -> None:
@@ -57,6 +52,13 @@ async def rest(broker: triopubsub.Broker) -> None:
         body = await quart.request.json
         LOGS.info('start_new_game [body: %s]', body)
 
+        start_new_game_input = rest_types.StartNewGameInput(**body)
+        LOGS.info('start_new_game [start_new_game_input: %s]',
+                  start_new_game_input)
+
+        input_element = start_new_game_input.input_queue_element()
+        LOGS.info('start_new_game [input_element: %s]', input_element)
+
         game_id = None
 
         # attach a "temporary" subscription to the topic to retrieve the
@@ -81,12 +83,6 @@ async def rest(broker: triopubsub.Broker) -> None:
                                                  game_id_subscription.subscription_id)
 
         async def send_start_game() -> None:
-            # this is what should happen when a 'new game' endpoint is called
-            input_element = types.InputQueueElement(command=types.Command.NEW_GAME,
-                                                    white=player(
-                                                        body['white']),
-                                                    black=player(body['black']))
-            LOGS.info('start_new_game [input_element: %s]', input_element)
             await broker.send_message_to(input_element, constants.INPUT_TOPIC)
 
         async with trio.open_nursery() as nursery:
@@ -96,26 +92,30 @@ async def rest(broker: triopubsub.Broker) -> None:
         if game_id is None:
             raise Exception('no game_id!')
 
-        await broker.send_message_to(game_id, topic_games.topic_id)
+        full = all([input_element.white is not None,
+                    input_element.black is not None])
+
+        await broker.send_message_to(rest_types.GamesOutput('add',
+                                                            game_id,
+                                                            full=full),
+                                     topic_games.topic_id)
 
         return game_id
 
     @app.route('/update', methods=['POST'])
-    def update() -> str:            # supposedly called by transcribe
+    async def update() -> str:            # supposedly called by transcribe
         body = quart.request.json
-        LOGS.info('start_new_game [body: {}]', body)
+        LOGS.info('update [body: {}]', body)
 
-        game_id = body['game_id']
-        move = body['move']
+        update_input = rest_types.UpdateInput(**body)
+        LOGS.info('update [update_input: {}]', update_input)
 
-        input_element = types.InputQueueElement(command=types.Command.MOVE,
-                                                game_id=game_id,
-                                                move=move)
+        input_element = update_input.input_queue_element()
+        LOGS.info('update [input_element: {}]', input_element)
 
-        app.nursery.start_soon(broker.send_message_to,
-                               input_element,
-                               constants.INPUT_TOPIC)
-        LOGS.info('start_new_game [input_element: %s]', input_element)
+        await app.nursery.start_soon(broker.send_message_to,
+                                     input_element,
+                                     constants.INPUT_TOPIC)
 
         return str(input_element)
 
@@ -142,12 +142,15 @@ async def rest(broker: triopubsub.Broker) -> None:
 
         nonlocal broker
         games_subscription = await broker.add_subscription(topic_games.topic_id,
-                                                           triopubsub.Subscription[str]('games_TODOUNIQ'))
+                                                           triopubsub.Subscription[rest_types.GamesOutput](str(uuid4())))
+        try:
+            async for games_output in broker.subscribe(triopubsub.Subscriber[rest_types.GamesOutput](),
+                                                       games_subscription.subscription_id):
+                LOGS.info('games [games_output: %s]', games_output)
 
-        async for game_id in broker.subscribe(triopubsub.Subscriber[str](),
-                                              games_subscription.subscription_id):
-            LOGS.info('game_id: %s', game_id)
-
-            await quart.websocket.send(game_id)
+                await quart.websocket.send(games_output.json())
+        finally:
+            broker.remove_subscription(topic_games.topic_id,
+                                       games_subscription.subscription_id)
 
     await hypercorn.trio.serve(app, config)
