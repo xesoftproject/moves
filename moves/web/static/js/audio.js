@@ -1,37 +1,51 @@
-import { update } from './moves-rest-client.js';
-import { subscribe } from './moves-stomp-client.js';
-import { queryparams } from './commons.js'
-import { QUERY_PARAMS_GAME_ID } from './constants.js';
+import { update, register } from './moves-rest-client.js';
+import { get_query_param } from './commons.js';
+import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
 
-const init = async () => {
-	// page requirement: ?game_id=xxx
-	const game_id = queryparams()[QUERY_PARAMS_GAME_ID][0];
-	if (!game_id) {
-		location.replace('index.html?error=nogameid');
-		throw new Error();
-	}
 
-	console.log('game_id: %o', game_id);
-	document.querySelector('h3').textContent = game_id;
+// TODO identify the user by cookie / hw analysis
+let I_AM;
+try {
+	I_AM = get_query_param(QUERY_PARAMS_I_AM);
+}
+catch (error) {
+	window.alert('no I_AM!');
+	throw error;
+}
 
-	await subscribe(game_id, ({ table }) => {
+// page requirement: ?game_id=xxx
+let GAME_ID;
+try {
+	GAME_ID = queryparams()[QUERY_PARAMS_GAME_ID][0];
+}
+catch (error) {
+	window.alert('no GAME_ID!');
+	throw error;
+}
+
+const onload = async () => {
+	document.querySelector('h3').textContent = GAME_ID;
+
+	for await (const message of register(GAME_ID)) {
+		console.log('message', message);
+		const { table } = message;
 		document.querySelector('pre').textContent = table;
-	});
+	}
 
 	document.querySelector('#move').addEventListener('click', async () => {
 		const move = document.querySelector('[type=text]').value;
 
 		try {
-			await update(game_id, move);
+			await update(I_AM, game_id, move);
 		}
 		catch (e) {
-			alert(e);
+			window.alert(e);
 		}
 	});
 };
 
 const main = () => {
-	document.addEventListener('DOMContentLoaded', init.bind(undefined));
+	document.addEventListener('DOMContentLoaded', onload);
 };
 
 main();

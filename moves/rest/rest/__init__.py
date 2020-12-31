@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import json
-import logging
-import typing
+from json import dumps
+from logging import getLogger
+from typing import cast
+from uuid import uuid4
 
 import hypercorn.config
 import hypercorn.trio
@@ -11,16 +12,14 @@ import quart_cors
 import quart_trio
 import trio
 
+from . import types as rest_types
 from .. import constants
 from .. import types
 from ... import configurations
 from ... import triopubsub
-from . import types as rest_types
-import uuid
-from uuid import uuid4
 
 
-LOGS = logging.getLogger(__name__)
+LOGS = getLogger(__name__)
 
 
 async def rest(broker: triopubsub.Broker) -> None:
@@ -41,11 +40,11 @@ async def rest(broker: triopubsub.Broker) -> None:
     if configurations.KEYFILE:
         config.keyfile = configurations.KEYFILE
 
-    app = typing.cast(quart_trio.QuartTrio,
-                      quart_cors.cors(quart_trio.QuartTrio(__name__),
-                                      allow_origin='*',
-                                      allow_methods=['POST'],
-                                      allow_headers=['content-type']))
+    app = cast(quart_trio.QuartTrio,
+               quart_cors.cors(quart_trio.QuartTrio(__name__),
+                               allow_origin='*',
+                               allow_methods=['POST'],
+                               allow_headers=['content-type']))
 
     @app.route('/start_new_game', methods=['POST'])
     async def start_new_game() -> str:
@@ -126,7 +125,7 @@ async def rest(broker: triopubsub.Broker) -> None:
             if game_id != output_element.game_universe.game_id:
                 continue
 
-            body = json.dumps({
+            body = dumps({
                 'move': output_element.move,
                 'table': str(output_element.game_universe.board)
             })

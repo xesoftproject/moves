@@ -1,7 +1,7 @@
 'use strict';
 
 import { get_query_param } from './commons.js';
-import { QUERY_PARAMS_I_AM } from './constants.js';
+import { QUERY_PARAMS_I_AM, PATH_GAME, QUERY_PARAMS_GAME_ID } from './constants.js';
 import { start_new_game, games } from './moves-rest-client.js';
 
 
@@ -16,8 +16,8 @@ catch (error) {
 }
 
 const join = (game_id) => {
-	window.open('audio.html?game_id=' + game_id, '_blank');
-	window.location.replace(`game.html?game_id=${game_id}`);
+	window.open(`audio.html?${QUERY_PARAMS_I_AM}=${I_AM}&${QUERY_PARAMS_GAME_ID}=${game_id}`, '_blank');
+	window.location.assign(`${PATH_GAME}?${QUERY_PARAMS_I_AM}=${I_AM}&${QUERY_PARAMS_GAME_ID}=${game_id}`);
 }
 
 const onload = async () => {
@@ -27,7 +27,7 @@ const onload = async () => {
 		const white = document.querySelector('[name="white"]:checked').value;
 		const black = document.querySelector('[name="black"]:checked').value;
 
-		const game_id = await start_new_game(white, black);
+		const game_id = await start_new_game(I_AM, white, black);
 		console.log('game_id: %o', game_id);
 	});
 

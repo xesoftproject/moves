@@ -3,9 +3,32 @@
 const STEP = .06;
 const STEP_DURATION = 1000;
 
-import { subscribe } from './moves-stomp-client.js';
-import { queryparams, sleep } from './commons.js'
-import { GAME_ID } from './constants.js';
+import { register } from './moves-rest-client.js';
+import { queryparams } from './commons.js'
+import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
+
+
+
+// TODO identify the user by cookie / hw analysis
+let I_AM;
+try {
+	I_AM = get_query_param(QUERY_PARAMS_I_AM);
+}
+catch (error) {
+	window.alert('no I_AM!');
+	throw error;
+}
+
+// page requirement: ?game_id=xxx
+let GAME_ID;
+try {
+	GAME_ID = queryparams()[QUERY_PARAMS_GAME_ID][0];
+}
+catch (error) {
+	window.alert('no GAME_ID!');
+	throw error;
+}
+
 
 /**
  * @param {string} from
@@ -62,57 +85,43 @@ const apply_move = async (piece, delta_x, delta_y) => {
 };
 
 
-/**
- * @param {{move: ?string, table: string}}
- */
-const move = async ({ move }) => {
-	console.log('move: %o', move);
+const onload = async () => {
+	console.log('I_AM', I_AM, 'GAME_ID', GAME_ID);
 
-	if (!move)
-		return;
+	const fn = async () => {
+		for await (const { move } of register(GAME_ID)) {
+			console.log('move: %o', move);
 
-	const from = move.substr(0, 2);
-	const to = move.substr(2, 2);
+			if (!move)
+				continue;
 
-	console.log('from: %o, to: %o', from, to);
+			const from = move.substr(0, 2);
+			const to = move.substr(2, 2);
 
-	const piece = lookup(from);
-	console.log('piece: %o', piece);
+			console.log('from: %o, to: %o', from, to);
 
-	const { delta_x, delta_y } = movement(from, to);
-	console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
+			const piece = lookup(from);
+			console.log('piece: %o', piece);
 
-	await apply_move(piece, delta_x, delta_y);
+			const { delta_x, delta_y } = movement(from, to);
+			console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
 
-	piece.setAttribute('square', to);
-};
+			await apply_move(piece, delta_x, delta_y);
 
+			piece.setAttribute('square', to);
+		}
+	};
 
-const run = async () => {
-	// page requirement: ?game_id=xxx
-	const game_id = queryparams()[GAME_ID][0];
-	if (!game_id) {
-		location.replace('index.html?error=nogameid');
-		throw new Error();
-	}
-
-	console.log('game_id: %o', game_id);
-
-	await subscribe(game_id, move);
-};
-
-const init = async () => {
 	const scene = document.querySelector('a-scene');
-
 	if (scene.hasLoaded)
-		await run();
+		await fn();
 	else
-		scene.addEventListener('loaded', run);
+		scene.addEventListener('loaded', fn);
 };
 
 
 const main = () => {
-	document.addEventListener('DOMContentLoaded', init.bind(undefined));
+	document.addEventListener('DOMContentLoaded', onload);
 };
 
 

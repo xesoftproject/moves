@@ -3,7 +3,31 @@
 const STEP = .06;
 const STEP_DURATION = 1000;
 
-import { sleep } from './commons.js';
+import { register } from './moves-rest-client.js';
+import { get_query_param, sleep } from './commons.js'
+import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
+
+
+
+// TODO identify the user by cookie / hw analysis
+let I_AM;
+try {
+	I_AM = get_query_param(QUERY_PARAMS_I_AM);
+}
+catch (error) {
+	window.alert('no I_AM!');
+	throw error;
+}
+
+// page requirement: ?game_id=xxx
+let GAME_ID;
+try {
+	GAME_ID = get_query_param(QUERY_PARAMS_GAME_ID);
+}
+catch (error) {
+	window.alert('no GAME_ID!');
+	throw error;
+}
 
 
 /**
@@ -61,53 +85,44 @@ const apply_move = async (piece, delta_x, delta_y) => {
 };
 
 
-/**
- * @param {{move: ?string, table: string}}
- */
-const move = async ({ move }) => {
-	console.log('move: %o', move);
+const onload = async () => {
+	console.log('I_AM', I_AM, 'GAME_ID', GAME_ID);
 
-	if (!move)
-		return;
+	const fn = async () => {
+		for (const move of ['f2f3', 'e7e5', 'g2g4', 'd8h4']) {
+			await sleep(.01);
+			console.log('move: %o', move);
 
-	const from = move.substr(0, 2);
-	const to = move.substr(2, 2);
+			if (!move)
+				continue;
 
-	console.log('from: %o, to: %o', from, to);
+			const from = move.substr(0, 2);
+			const to = move.substr(2, 2);
 
-	const piece = lookup(from);
-	console.log('piece: %o', piece);
+			console.log('from: %o, to: %o', from, to);
 
-	const { delta_x, delta_y } = movement(from, to);
-	console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
+			const piece = lookup(from);
+			console.log('piece: %o', piece);
 
-	await apply_move(piece, delta_x, delta_y);
+			const { delta_x, delta_y } = movement(from, to);
+			console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
 
-	piece.setAttribute('square', to);
-};
+			await apply_move(piece, delta_x, delta_y);
 
+			piece.setAttribute('square', to);
+		}
+	};
 
-const run = async () => {
-	for (const mv of [
-		'f2f3', 'e7e5', 'g2g4', 'd8h4',
-	]) {
-		await sleep(.01);
-		await move({ move: mv });
-	}
-};
-
-const init = async () => {
 	const scene = document.querySelector('a-scene');
-
 	if (scene.hasLoaded)
-		await run();
+		await fn();
 	else
-		scene.addEventListener('loaded', run);
+		scene.addEventListener('loaded', fn);
 };
 
 
 const main = () => {
-	document.addEventListener('DOMContentLoaded', init.bind(undefined));
+	document.addEventListener('DOMContentLoaded', onload);
 };
 
 
