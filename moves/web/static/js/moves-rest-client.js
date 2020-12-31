@@ -1,5 +1,5 @@
 import { HTTP, WS, HOSTNAME, REST_PORT } from './configuration.js';
-import { messages } from './commons.js';
+import { messages, json_parse } from './commons.js';
 
 const HTTP_BASENAME = `${HTTP}://${HOSTNAME}:${REST_PORT}`;
 const WS_BASENAME = `${WS}://${HOSTNAME}:${REST_PORT}`;
@@ -58,7 +58,7 @@ const update = async (user_id, game_id, move) => {
  * @returns async interator with the games
  */
 const games = () => {
-	return messages(new WebSocket(`${WS_BASENAME}/games`));
+	return json_parse(messages(new WebSocket(`${WS_BASENAME}/games`)));
 };
 
 /**
@@ -66,7 +66,7 @@ const games = () => {
  * @returns async interator with the moves
  */
 const register = (game_id) => {
-	return messages(new WebSocket(`${WS_BASENAME}/register/${game_id}`));
+	return json_parse(messages(new WebSocket(`${WS_BASENAME}/register/${game_id}`)));
 };
 
 export { update, start_new_game, games, register };

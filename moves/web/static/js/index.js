@@ -31,34 +31,34 @@ const onload = async () => {
 		console.log('game_id: %o', game_id);
 	});
 
-	for await (const games_ouput of games()) {
-		console.log('[games_ouput: %o]', games_ouput);
+	for await (const { op, game_id, full } of games()) {
+		console.log('[op: %o, game_id: %o, full: %o]', op, game_id, full);
 
-		if (games_ouput.op === 'add') {
+		if (op === 'add') {
 			const a = document.createElement('a');
 			a.setAttribute('href', `#`);
-			a.textContent = games_ouput.game_id;
+			a.textContent = game_id;
 			a.addEventListener('click', (e) => {
 				e.preventDefault();
-				join(game);
+				join(game_id);
 			});
 			const span = document.createElement('span');
-			span.textContent = games_ouput.full ? 'full - only look' : 'play!';
+			span.textContent = full ? 'full - only look' : 'play!';
 			const li = document.createElement('li');
-			li.setAttribute('id', games_ouput.game_id)
+			li.setAttribute('id', game_id)
 			li.appendChild(a);
 			li.appendChild(span);
 			document.querySelector('#games').appendChild(li);
 		}
-		else if (games_ouput.op === 'remove') {
-			document.querySelector('#games').removeChild(document.querySelector(`#${games_ouput.game_id}`));
+		else if (op === 'remove') {
+			document.querySelector('#games').removeChild(document.querySelector(`#${game_id}`));
 		}
-		else if (games_ouput.op === 'update') {
+		else if (op === 'update') {
 			alert('TODO'); // TODO
 		}
 		else {
-			window.aler(`unknown [games_ouput.op: ${games_ouput.op}]`);
-			throw new Error(`unknown [games_ouput.op: ${games_ouput.op}]`);
+			window.alert(`unknown [op: ${op}]`);
+			throw new Error(`unknown [op: ${op}]`);
 		}
 	}
 };

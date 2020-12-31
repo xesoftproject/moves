@@ -3,7 +3,6 @@ from __future__ import annotations
 from json import dumps
 from logging import getLogger
 from typing import cast
-from uuid import uuid4
 
 import hypercorn.config
 import hypercorn.trio

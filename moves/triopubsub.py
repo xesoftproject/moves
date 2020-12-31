@@ -199,7 +199,7 @@ class Broker:
                                     send_old_messages: bool = True
                                     ) -> AsyncIterator[Subscription[Message]]:
         sub = await self.add_subscription(topic_id,
-                                          Subscription[Message](str(uuid4),
+                                          Subscription[Message](str(uuid4()),
                                                                 send_old_messages=send_old_messages))
         try:
             yield sub

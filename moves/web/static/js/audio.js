@@ -16,7 +16,7 @@ catch (error) {
 // page requirement: ?game_id=xxx
 let GAME_ID;
 try {
-	GAME_ID = queryparams()[QUERY_PARAMS_GAME_ID][0];
+	GAME_ID = get_query_param(QUERY_PARAMS_GAME_ID);
 }
 catch (error) {
 	window.alert('no GAME_ID!');

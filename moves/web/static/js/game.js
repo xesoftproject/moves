@@ -4,7 +4,7 @@ const STEP = .06;
 const STEP_DURATION = 1000;
 
 import { register } from './moves-rest-client.js';
-import { queryparams } from './commons.js'
+import { get_query_param } from './commons.js'
 import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
 
 
@@ -22,7 +22,7 @@ catch (error) {
 // page requirement: ?game_id=xxx
 let GAME_ID;
 try {
-	GAME_ID = queryparams()[QUERY_PARAMS_GAME_ID][0];
+	GAME_ID = get_query_param(QUERY_PARAMS_GAME_ID);
 }
 catch (error) {
 	window.alert('no GAME_ID!');

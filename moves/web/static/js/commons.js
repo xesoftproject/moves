@@ -76,4 +76,11 @@ const messages = async function*(ws) {
 };
 
 
-export { queryparams, get_query_param, sleep, messages };
+const json_parse = async function*(agen) {
+	for await (const el of agen) {
+		yield JSON.parse(el);
+	}
+};
+
+
+export { queryparams, get_query_param, sleep, messages, json_parse };
