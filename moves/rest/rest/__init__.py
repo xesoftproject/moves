@@ -113,9 +113,7 @@ async def rest(broker: triopubsub.Broker) -> None:
         input_element = update_input.input_queue_element()
         LOGS.info('update [input_element: {}]', input_element)
 
-        await app.nursery.start_soon(broker.send_message_to,
-                                     input_element,
-                                     constants.INPUT_TOPIC)
+        await broker.send_message_to(input_element, constants.INPUT_TOPIC)
 
         return str(input_element)
 
