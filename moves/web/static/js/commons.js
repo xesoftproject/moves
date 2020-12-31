@@ -63,14 +63,16 @@ const messages = async function*(ws) {
 		ws_open = false;
 	});
 
+	const queue = [];
+
+	ws.addEventListener('message', (event) => queue.push(event.data));
+
 	do {
-		yield await new Promise((resolve, _) => {
-			const cb = (event) => {
-				resolve(event.data);
-				ws.removeEventListener('message', cb);
-			};
-			ws.addEventListener('message', cb);
-		});
+		const head = queue.shift();
+		if (head !== undefined)
+			yield Promise.resolve(head);
+		else
+			await sleep(100);
 	}
 	while (ws_open);
 };
