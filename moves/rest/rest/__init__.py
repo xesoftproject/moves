@@ -67,11 +67,12 @@ async def rest(broker: triopubsub.Broker) -> None:
         async def get_game_id() -> None:
             nonlocal game_id
 
-            async with broker.with_subscription(constants.OUTPUT_TOPIC,
-                                                triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
-                                                                                                  send_old_messages=False)) as game_id_subscription:
-                async for game_id_message in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](),
-                                                              game_id_subscription.subscription_id):
+            async with broker.with_tmp_subscription(constants.OUTPUT_TOPIC,
+                                                    types.OutputQueueElement,
+                                                    send_old_messages=False
+                                                    ) as game_id_subscription:
+                async for game_id_message in broker.messages(game_id_subscription.subscription_id,
+                                                             types.OutputQueueElement):
                     output_element = game_id_message
                     LOGS.info('output_element: %s', output_element)
                     if output_element.result != types.Result.GAME_CREATED:
@@ -118,8 +119,8 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
-        async for output_element in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](),
-                                                     subscription.subscription_id):
+        async for output_element in broker.messages(subscription.subscription_id,
+                                                    types.OutputQueueElement):
             LOGS.info('output_element: %s', output_element)
 
             if game_id != output_element.game_universe.game_id:
@@ -135,10 +136,11 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def games() -> None:
         LOGS.info('games()')
 
-        async with broker.with_subscription(topic_games.topic_id,
-                                            triopubsub.Subscription[rest_types.GamesOutput](str(uuid4()))) as games_subscription:
-            async for games_output in broker.subscribe(triopubsub.Subscriber[rest_types.GamesOutput](),
-                                                       games_subscription.subscription_id):
+        async with broker.with_tmp_subscription(topic_games.topic_id,
+                                                rest_types.GamesOutput
+                                                ) as games_subscription:
+            async for games_output in broker.messages(games_subscription.subscription_id,
+                                                      rest_types.GamesOutput):
                 LOGS.info('games [games_output: %s]', games_output)
 
                 await quart.websocket.send(games_output.json())

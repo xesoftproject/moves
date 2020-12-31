@@ -59,10 +59,10 @@ async def chat() -> None:
 
         await quart.websocket.accept()
 
-        async with broker.with_subscription(chats_topic.topic_id,
-                                            triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}')) as subscription:
-            async for message in broker.subscribe(triopubsub.Subscriber[str](),
-                                                  subscription.subscription_id):
+        async with broker.with_tmp_subscription(chats_topic.topic_id,
+                                                str) as subscription:
+            async for message in broker.messages(subscription.subscription_id,
+                                                 str):
                 await quart.websocket.send(message)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
@@ -79,22 +79,18 @@ async def chat() -> None:
     async def chat(chat_id: str) -> None:
         'join a chat'
 
-        topic = broker.topics[chat_id]
-
         async def send_messages() -> None:
             while True:
                 chat_message = ChatMessage.loads(await quart.websocket.receive())
                 await broker.send_message_to(chat_message, chat_id)
 
         async def receive_messages() -> None:
-            subscriber = triopubsub.Subscriber[ChatMessage]()
-
-            async for message in broker.subscribe(subscriber,
-                                                  subscription.subscription_id):
+            async for message in broker.messages(subscription.subscription_id,
+                                                 ChatMessage):
                 await quart.websocket.send(message.dumps())
 
-        async with broker.with_subscription(chat_id,
-                                            triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}')) as subscription:
+        async with broker.with_tmp_subscription(chat_id,
+                                                ChatMessage) as subscription:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(send_messages)
                 nursery.start_soon(receive_messages)

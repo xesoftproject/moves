@@ -74,7 +74,6 @@ async def game_engine(broker: triopubsub.Broker) -> None:
 
     # pub/sub "infrastructure"
     subscription = triopubsub.Subscription[types.InputQueueElement](__name__)
-    subscriber = triopubsub.Subscriber[types.InputQueueElement]()
 
     await broker.add_subscription(constants.INPUT_TOPIC, subscription)
 
@@ -82,7 +81,8 @@ async def game_engine(broker: triopubsub.Broker) -> None:
     games: typing.Dict[str, types.GameUniverse] = {}
 
     # main loop
-    async for input_element in broker.subscribe(subscriber, __name__):
+    async for input_element in broker.messages(__name__,
+                                               types.InputQueueElement):
         LOGS.info('input_element: %s', input_element)
 
         for output_element in handle(games, input_element):

@@ -68,7 +68,6 @@ async def cpu(broker: triopubsub.Broker) -> None:
 
     # pub/sub "infrastructure"
     subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
-    subscriber = triopubsub.Subscriber[types.OutputQueueElement]()
 
     await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
 
@@ -80,7 +79,8 @@ async def cpu(broker: triopubsub.Broker) -> None:
         raise
 
     # main loop
-    async for output_element in broker.subscribe(subscriber, __name__):
+    async for output_element in broker.messages(__name__,
+                                                types.OutputQueueElement):
         LOGS.info('output_element: %s', output_element)
 
         async for input_element in handle(engine, output_element):
