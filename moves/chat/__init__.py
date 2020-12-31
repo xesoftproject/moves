@@ -59,15 +59,11 @@ async def chat() -> None:
 
         await quart.websocket.accept()
 
-        subscription = await broker.add_subscription(chats_topic.topic_id,
-                                                     triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}'))
-        try:
+        async with broker.with_subscription(chats_topic.topic_id,
+                                            triopubsub.Subscription[str](f'{chats_topic.topic_id}_{len(chats_topic.subscriptions)}')) as subscription:
             async for message in broker.subscribe(triopubsub.Subscriber[str](),
                                                   subscription.subscription_id):
                 await quart.websocket.send(message)
-        finally:
-            await broker.remove_subscription(chats_topic.topic_id,
-                                             subscription.subscription_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
@@ -85,9 +81,6 @@ async def chat() -> None:
 
         topic = broker.topics[chat_id]
 
-        subscription = await broker.add_subscription(chat_id,
-                                                     triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}'))
-
         async def send_messages() -> None:
             while True:
                 chat_message = ChatMessage.loads(await quart.websocket.receive())
@@ -100,13 +93,11 @@ async def chat() -> None:
                                                   subscription.subscription_id):
                 await quart.websocket.send(message.dumps())
 
-        try:
+        async with broker.with_subscription(chat_id,
+                                            triopubsub.Subscription[ChatMessage](f'{chat_id}_{len(topic.subscriptions)}')) as subscription:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(send_messages)
                 nursery.start_soon(receive_messages)
-        finally:
-            await broker.remove_subscription(topic.topic_id,
-                                             subscription.subscription_id)
 
     await hypercorn.trio.serve(app, config)
 

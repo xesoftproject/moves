@@ -66,10 +66,10 @@ async def rest(broker: triopubsub.Broker) -> None:
         # TODO: create a "id generator" topic/service/something?
         async def get_game_id() -> None:
             nonlocal game_id
-            game_id_subscription = await broker.add_subscription(constants.OUTPUT_TOPIC,
-                                                                 triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
-                                                                                                                   send_old_messages=False))
-            try:
+
+            async with broker.with_subscription(constants.OUTPUT_TOPIC,
+                                                triopubsub.Subscription[types.OutputQueueElement](f'{__name__}tmp',
+                                                                                                  send_old_messages=False)) as game_id_subscription:
                 async for game_id_message in broker.subscribe(triopubsub.Subscriber[types.OutputQueueElement](),
                                                               game_id_subscription.subscription_id):
                     output_element = game_id_message
@@ -78,9 +78,6 @@ async def rest(broker: triopubsub.Broker) -> None:
                         continue
                     game_id = output_element.game_universe.game_id
                     break
-            finally:
-                await broker.remove_subscription(constants.OUTPUT_TOPIC,
-                                                 game_id_subscription.subscription_id)
 
         async def send_start_game() -> None:
             await broker.send_message_to(input_element, constants.INPUT_TOPIC)
@@ -138,17 +135,12 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def games() -> None:
         LOGS.info('games()')
 
-        nonlocal broker
-        games_subscription = await broker.add_subscription(topic_games.topic_id,
-                                                           triopubsub.Subscription[rest_types.GamesOutput](str(uuid4())))
-        try:
+        async with broker.with_subscription(topic_games.topic_id,
+                                            triopubsub.Subscription[rest_types.GamesOutput](str(uuid4()))) as games_subscription:
             async for games_output in broker.subscribe(triopubsub.Subscriber[rest_types.GamesOutput](),
                                                        games_subscription.subscription_id):
                 LOGS.info('games [games_output: %s]', games_output)
 
                 await quart.websocket.send(games_output.json())
-        finally:
-            broker.remove_subscription(topic_games.topic_id,
-                                       games_subscription.subscription_id)
 
     await hypercorn.trio.serve(app, config)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 from math import inf
 from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Set, cast
+import typing
 
 from trio import open_memory_channel, sleep
 
@@ -188,3 +190,14 @@ class Broker:
 
         await self.topics[topic_id].remove_subscription(subscription_id)
         del self.subscriptions[subscription_id]
+
+    @asynccontextmanager
+    async def with_subscription(self,
+                                topic_id: str,
+                                subscription: Subscription[Message]
+                                ) -> AsyncIterator[Subscription[Message]]:
+        sub = await self.add_subscription(topic_id, subscription)
+        try:
+            yield sub
+        finally:
+            await self.remove_subscription(topic_id, sub.subscription_id)
