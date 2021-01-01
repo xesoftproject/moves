@@ -176,8 +176,10 @@ const onload = async () => {
 	console.debug('I_AM', I_AM, 'GAME_ID', GAME_ID);
 
 	const fn = async () => {
-		for await (const { move } of register(GAME_ID)) {
+		for await (const { move, table } of register(GAME_ID)) {
 			console.info('move: %o', move);
+
+			document.querySelector('pre').textContent = table;
 
 			if (!move)
 				continue;

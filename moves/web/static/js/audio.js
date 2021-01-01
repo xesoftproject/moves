@@ -26,9 +26,7 @@ catch (error) {
 const onload = async () => {
 	document.querySelector('h3').textContent = GAME_ID;
 
-	for await (const message of register(GAME_ID)) {
-		console.log('message', message);
-		const { table } = message;
+	for await (const { table } of register(GAME_ID)) {
 		document.querySelector('pre').textContent = table;
 	}
 
