@@ -79,11 +79,15 @@ const apply_move = async (piece, delta_x, delta_y, to) => {
 	piece.setAttribute('animation',
 		`property: position; dur: ${STEP_DURATION}; to: ${x} ${y} ${z}`);
 
-	await new Promise(r => {
-		piece.addEventListener('animationcomplete', () => {
-			r(null);
-		})
+	await new Promise(resolve => {
+		piece.addEventListener('animationcomplete', resolve)
 	});
+
+	const captured = lookup(to);
+	if (captured) {
+		console.info('captured: %o', captured);
+		captured.remove();
+	}
 
 	piece.setAttribute('square', to);
 };
