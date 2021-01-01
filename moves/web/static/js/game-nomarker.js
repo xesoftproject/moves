@@ -3,8 +3,28 @@
 const STEP = .06;
 const STEP_DURATION = 1000;
 
-import { register } from './moves-rest-client.js';
-import { get_query_param, sleep } from './commons.js'
+import { sleep } from './commons.js'
+async function* register(game_id) {
+	console.debug('game_id', game_id);
+	for (const move of [
+		'e2e4',
+		'e7e5',
+		'g1f3',
+		'b8c6',
+		'f1b5',
+		'g8f6',
+		'e1g1',
+		'f6e4',
+		'f1e1',
+		'e4d6'
+	]) {
+		await sleep(1);
+		yield { 'move': move };
+	}
+}
+
+
+import { get_query_param } from './commons.js'
 import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
 
 
@@ -61,9 +81,11 @@ const movement = (from, to) => {
  * @param {Element} piece
  * @param {number} delta_x
  * @param {number} delta_y
+ * @param {string} to
  */
-const apply_move = async (piece, delta_x, delta_y) => {
-	console.log('piece: %o, delta_x: %o, delta_y: %o', piece, delta_x, delta_y);
+const apply_move = async (piece, delta_x, delta_y, to) => {
+	console.debug('piece: %o, delta_x: %o, delta_y: %o, to: %o',
+		piece, delta_x, delta_y, to);
 	if (!piece) {
 		console.error('no piece!');
 		return;
@@ -82,16 +104,96 @@ const apply_move = async (piece, delta_x, delta_y) => {
 			r(null);
 		})
 	});
+
+	piece.setAttribute('square', to);
+};
+
+/**
+ * @param {Element} piece
+ * @param {number} delta_x
+ * @param {number} delta_y
+ * @returns {boolean}
+ */
+const is_castling = (piece, delta_x, delta_y) => {
+	const id = piece.getAttribute('id');
+
+	// only the king can make the castling
+	if (id !== 'whiteking' && id !== 'blackking')
+		return false;
+
+	// it's the only king move of lenght 2 - and horizontally
+	return (delta_x === 2 || delta_x === -2) && delta_y === 0;
+};
+
+
+/**
+ * @param {string} chr
+ * @returns {string}
+ */
+const succ_chr = (chr, delta = 1) => {
+	return String.fromCharCode(chr.charCodeAt(0) + delta);
+};
+
+
+/**
+ * create a "fake" move of the correct rook to handle the castling
+ * 
+ * @param {Element} piece
+ * @param {number} delta_x
+ * @returns {{ rook_piece: Element, rook_from: string, rook_to: string }}
+ */
+const castling = (piece, delta_x) => {
+	const color = piece.getAttribute('id').substr(0, 5); // white | black
+	const side = delta_x === 2 ? 'h' : 'a'; // a | h
+
+	// rooks ids are whiterooka, whiterookh, blackrooka, blackrookh
+	const rook_piece = document.getElementById(`${color}rook${side}`);
+	const rook_from = rook_piece.getAttribute('square');
+
+	// the rook goes on the square the king crossed
+	const king_square = piece.getAttribute('square'); // after the move!
+	const king_square_x = parseInt(king_square.substr(1, 1));
+	const king_square_y = king_square.substr(0, 1);
+	const rook_to_y = succ_chr(king_square_y, delta_x === 2 ? -1 : 1);
+
+	const rook_to = `${rook_to_y}${king_square_x}`;
+
+	return {
+		rook_piece,
+		rook_from,
+		rook_to
+	};
+};
+/**
+ * @param {Element} piece
+ * @param {number} delta_x
+ * @param {number} delta_y
+ * @param {string} to
+ * @returns {Promise<any>}
+ */
+const maybe_castling = async (piece, delta_x, delta_y) => {
+	if (!is_castling(piece, delta_x, delta_y))
+		return;
+
+	console.info('arrocco');
+
+	const { rook_piece, rook_from, rook_to } = castling(piece, delta_x);
+	console.debug('rook_piece: %o, rook_from: %o, rook_to: %o',
+		rook_piece, rook_from, rook_to);
+
+	const { delta_x: rook_delta_x, delta_y: rook_delta_y } = movement(rook_from, rook_to);
+	console.debug('rook_delta_x: %o, rook_delta_y: %o', rook_delta_x, rook_delta_y);
+
+	await apply_move(rook_piece, rook_delta_x, rook_delta_y, rook_to);
 };
 
 
 const onload = async () => {
-	console.log('I_AM', I_AM, 'GAME_ID', GAME_ID);
+	console.debug('I_AM', I_AM, 'GAME_ID', GAME_ID);
 
 	const fn = async () => {
-		for (const move of ['f2f3', 'e7e5', 'g2g4', 'd8h4']) {
-			await sleep(.01);
-			console.log('move: %o', move);
+		for await (const { move } of register(GAME_ID)) {
+			console.info('move: %o', move);
 
 			if (!move)
 				continue;
@@ -99,17 +201,17 @@ const onload = async () => {
 			const from = move.substr(0, 2);
 			const to = move.substr(2, 2);
 
-			console.log('from: %o, to: %o', from, to);
+			console.debug('from: %o, to: %o', from, to);
 
 			const piece = lookup(from);
-			console.log('piece: %o', piece);
+			console.debug('piece: %o', piece);
 
 			const { delta_x, delta_y } = movement(from, to);
-			console.log('delta_x: %o, delta_y: %o', delta_x, delta_y);
+			console.debug('delta_x: %o, delta_y: %o', delta_x, delta_y);
 
-			await apply_move(piece, delta_x, delta_y);
+			await apply_move(piece, delta_x, delta_y, to);
 
-			piece.setAttribute('square', to);
+			await maybe_castling(piece, delta_x, delta_y);
 		}
 	};
 
