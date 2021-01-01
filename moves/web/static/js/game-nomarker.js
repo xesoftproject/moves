@@ -19,7 +19,7 @@ async function* register(game_id) {
 		'e4d6'
 	]) {
 		await sleep(1);
-		yield { 'move': move };
+		yield { 'move': move, 'table': 'nope', 'winner': null };
 	}
 }
 
@@ -196,8 +196,8 @@ const onload = async () => {
 	console.debug('I_AM', I_AM, 'GAME_ID', GAME_ID);
 
 	const fn = async () => {
-		for await (const { move, table } of register(GAME_ID)) {
-			console.info('move: %o', move);
+		for await (const { move, table, winner } of register(GAME_ID)) {
+			console.info('move: %o, winner: %o', move, winner);
 
 			document.querySelector('pre').textContent = table;
 

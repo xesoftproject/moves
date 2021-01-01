@@ -124,11 +124,10 @@ async def rest(broker: triopubsub.Broker) -> None:
             if game_id != output_element.game_universe.game_id:
                 continue
 
-            body = dumps({
-                'move': output_element.move,
-                'table': str(output_element.game_universe.board)
-            })
-            await quart.websocket.send(body)
+            register_output = rest_types.RegisterOutput.from_output_queue_element(
+                output_element)
+
+            await quart.websocket.send(register_output.json())
 
     @app.websocket('/games')
     async def games() -> None:

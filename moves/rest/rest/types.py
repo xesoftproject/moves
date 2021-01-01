@@ -1,15 +1,16 @@
 'rest types'
+
+from __future__ import annotations
+
 from dataclasses import dataclass, asdict
-import json
-import typing
-import uuid
+from json import dumps
+from typing import Optional, Tuple, Literal
+from uuid import uuid4
 
 from .. import types
 
 
-Type = typing.Literal['cpu', 'human']
-
-
+Type = Literal['cpu', 'human']
 
 
 @dataclass()
@@ -19,7 +20,7 @@ class StartNewGameInput:
     black: Type
 
     def _players(self
-                 ) -> typing.Tuple[types.Player, typing.Optional[types.Player]]:
+                 ) -> Tuple[types.Player, Optional[types.Player]]:
         '''4 options:
         human VS human -> white is player, black is None
         human VS cpu -> white is player, black is cpu (random id)
@@ -32,13 +33,13 @@ class StartNewGameInput:
             if self.black == 'human':
                 black = None
             else:
-                black = types.Player(str(uuid.uuid4()), types.PlayerType.CPU)
+                black = types.Player(str(uuid4()), types.PlayerType.CPU)
         else:
-            white = types.Player(str(uuid.uuid4()), types.PlayerType.CPU)
+            white = types.Player(str(uuid4()), types.PlayerType.CPU)
             if self.black == 'human':
                 black = types.Player(self.user_id, types.PlayerType.HUMAN)
             else:
-                black = types.Player(str(uuid.uuid4()), types.PlayerType.CPU)
+                black = types.Player(str(uuid4()), types.PlayerType.CPU)
 
         return (white, black)
 
@@ -61,7 +62,7 @@ class UpdateInput:
                                        move=self.move)
 
 
-Op = typing.Literal['add', 'remove', 'update']
+Op = Literal['add', 'remove', 'update']
 
 
 @dataclass()
@@ -71,4 +72,24 @@ class GamesOutput:
     full: bool
 
     def json(self) -> str:
-        return json.dumps(asdict(self))
+        return dumps(asdict(self))
+
+
+@dataclass()
+class RegisterOutput:
+    move: Optional[str]
+    table: str
+    winner: Optional[str]
+
+    @classmethod
+    def from_output_queue_element(cls,
+                                  output_element: types.OutputQueueElement
+                                  ) -> 'RegisterOutput':
+        board = output_element.game_universe.board
+
+        return RegisterOutput(output_element.move,
+                              str(board),
+                              board.result() if board.is_game_over() else None)
+
+    def json(self) -> str:
+        return dumps(asdict(self))
