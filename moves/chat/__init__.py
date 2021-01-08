@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
 import logging
 import typing
@@ -8,15 +9,14 @@ import typing
 import hypercorn.config
 import hypercorn.trio
 import quart
+import quart_cors
 import quart_trio
 import trio
-import quart_cors
 
+from .. import autils
 from .. import configurations
 from .. import logs
-from .. import autils
 from .. import triopubsub
-import functools
 
 
 LOGS = logging.getLogger(__name__)
@@ -93,6 +93,9 @@ async def chat() -> None:
                 LOGS.info('sent %s to client', message.dumps())
 
         await quart.websocket.accept()
+
+        if chat_id not in broker.topics:
+            await create_chat(chat_id)
 
         async with broker.with_tmp_subscription(chat_id,
                                                 ChatMessage) as subscription:

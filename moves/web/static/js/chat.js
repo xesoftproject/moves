@@ -12,7 +12,7 @@ catch (error) {
 	throw error;
 }
 
-const CHAT_ID;
+let CHAT_ID;
 try {
 	CHAT_ID = get_query_param(QUERY_PARAMS_CHAT_ID);
 }
