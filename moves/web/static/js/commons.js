@@ -35,7 +35,7 @@ const get_query_param = (key, location = window.location) => {
 	if (values.length !== 1)
 		throw new Error(`[values: ${values}]`);
 
-	return values[0];
+	return decodeURIComponent(values[0]);
 };
 
 /**
