@@ -43,6 +43,7 @@ setuptools.setup(name='moves',
                      'quart-trio',
                      'trio-typing',
                      'hypercorn',
-                     'quart-cors'
+                     'quart-cors',
+                     'trio_asyncio'
                  ],
                  package_data={'moves': moves_package_data()})
