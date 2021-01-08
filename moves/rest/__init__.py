@@ -3,6 +3,7 @@ import math
 import typing
 
 import trio
+import trio_asyncio
 
 from . import constants
 from . import cpu
@@ -51,4 +52,4 @@ async def parent() -> None:
 def main() -> None:
     logs.setup_logs(__name__)
 
-    trio.run(parent)
+    trio_asyncio.run(parent)
