@@ -43,7 +43,7 @@ const get_query_param = (key, location = window.location) => {
  * @param {number} ms - duration
  * @returns {Promise<null>} nothing
  */
-const sleep = async (ms) => await new Promise(r => setTimeout(_ => r(null), ms));
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 /**
@@ -51,30 +51,37 @@ const sleep = async (ms) => await new Promise(r => setTimeout(_ => r(null), ms))
  * @param {WebSocket} ws
  */
 const messages = async function*(ws) {
-	let ws_open = ws.readyState === WebSocket.OPEN;
-	ws.addEventListener('close', _ => {
-		ws_open = false;
-	});
-	ws.addEventListener('open', _ => {
-		ws_open = true;
-	});
-	ws.addEventListener('error', console.error);
-	ws.addEventListener('error', _ => {
-		ws_open = false;
+	if (ws.readyState !== WebSocket.OPEN)
+		await new Promise((resolve, reject) => {
+			ws.addEventListener('close', reject);
+			ws.addEventListener('open', resolve);
+			ws.addEventListener('error', reject);
+		});
+
+	const datas = [];
+	const resolves = [];
+
+	ws.addEventListener('message', (event) => {
+		if (resolves.length) {
+			resolves.shift()(event.data);
+			return;
+		}
+
+		datas.push(event.data);
 	});
 
-	const queue = [];
+	const receive = () => {
+		if (datas.length)
+			return Promise.resolve(datas.shift());
 
-	ws.addEventListener('message', (event) => queue.push(event.data));
+		return new Promise(resolve => {
+			resolves.push(resolve);
+		});
+	};
 
-	do {
-		const head = queue.shift();
-		if (head !== undefined)
-			yield Promise.resolve(head);
-		else
-			await sleep(100);
+	while (ws.readyState === WebSocket.OPEN) {
+		yield await receive();
 	}
-	while (ws_open);
 };
 
 

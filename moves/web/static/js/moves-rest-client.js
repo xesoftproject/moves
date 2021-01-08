@@ -1,3 +1,5 @@
+'use strict';
+
 import { HTTP, WS, HOSTNAME, REST_PORT } from './configuration.js';
 import { messages, json_parse } from './commons.js';
 

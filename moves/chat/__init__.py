@@ -16,6 +16,7 @@ from .. import configurations
 from .. import logs
 from .. import autils
 from .. import triopubsub
+import functools
 
 
 LOGS = logging.getLogger(__name__)
@@ -59,11 +60,10 @@ async def chat() -> None:
 
         await quart.websocket.accept()
 
-        async with broker.with_tmp_subscription(chats_topic.topic_id,
-                                                str) as subscription:
-            async for message in broker.messages(subscription.subscription_id,
-                                                 str):
+        async with broker.with_tmp_subscription(chats_topic.topic_id, str) as subscription:
+            async for message in broker.messages(subscription.subscription_id, str):
                 await quart.websocket.send(message)
+                LOGS.info('sent %s to client', message)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
@@ -73,6 +73,7 @@ async def chat() -> None:
 
         await broker.send_message_to(chat_id, chats_topic.topic_id)
 
+        LOGS.info('returning %s to client', chat_id)
         return chat_id
 
     @app.websocket('/chat/<string:chat_id>')
@@ -82,12 +83,16 @@ async def chat() -> None:
         async def send_messages() -> None:
             while True:
                 chat_message = ChatMessage.loads(await quart.websocket.receive())
+                LOGS.info('received %s from client', chat_message)
                 await broker.send_message_to(chat_message, chat_id)
 
         async def receive_messages() -> None:
             async for message in broker.messages(subscription.subscription_id,
                                                  ChatMessage):
                 await quart.websocket.send(message.dumps())
+                LOGS.info('sent %s to client', message.dumps())
+
+        await quart.websocket.accept()
 
         async with broker.with_tmp_subscription(chat_id,
                                                 ChatMessage) as subscription:

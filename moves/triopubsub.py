@@ -210,6 +210,9 @@ class Broker:
                        subscription_id: str,
                        _cls: Type[Message],
                        ) -> AsyncIterator[Message]:
-        async for message in self.subscribe(Subscriber[Message](),
-                                            subscription_id):
-            yield message
+        subscriber = Subscriber[Message]()
+        try:
+            async for message in self.subscribe(subscriber, subscription_id):
+                yield message
+        finally:
+            self.subscriptions[subscription_id].subscribers.remove(subscriber)
