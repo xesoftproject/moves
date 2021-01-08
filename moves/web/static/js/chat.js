@@ -1,18 +1,24 @@
-import { queryparams } from './commons.js';
+import { get_query_param } from './commons.js';
 import { QUERY_PARAMS_I_AM, QUERY_PARAMS_CHAT_ID } from './constants.js';
 import { chat } from './moves-chat-client.js';
 
 // TODO identify the user by cookie / hw analysis
-const I_AM = queryparams()[QUERY_PARAMS_I_AM][0];
-if (!I_AM) {
+let I_AM;
+try {
+	I_AM = get_query_param(QUERY_PARAMS_I_AM);
+}
+catch (error) {
 	window.alert('no I_AM!');
-	throw new Error();
+	throw error;
 }
 
-const CHAT_ID = queryparams()[QUERY_PARAMS_CHAT_ID][0];
-if (!CHAT_ID) {
+const CHAT_ID;
+try {
+	CHAT_ID = get_query_param(QUERY_PARAMS_CHAT_ID);
+}
+catch (error) {
 	window.alert('no CHAT_ID!');
-	throw new Error();
+	throw error;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
