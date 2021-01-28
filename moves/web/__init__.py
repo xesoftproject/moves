@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 import typing
 
 import hypercorn.config
@@ -16,6 +17,9 @@ from .. import logs
 LOGS = logging.getLogger(__name__)
 
 
+REGISTERED_USERS: typing.Dict[str, str] = {}
+
+
 async def web() -> None:
     config = hypercorn.config.Config()
     config.bind = [f'0.0.0.0:{configurations.WEB_PORT}']
@@ -25,6 +29,7 @@ async def web() -> None:
         config.keyfile = configurations.KEYFILE
 
     app = quart_trio.QuartTrio(__name__, static_url_path='/')
+    app.secret_key = secrets.token_urlsafe(32)
 
     @app.route('/')
     async def index() -> quart.Response:
@@ -37,6 +42,44 @@ async def web() -> None:
                                            configurations=configurations)
         return quart.Response(body,
                               mimetype='application/javascript; charset=utf-8')
+
+    @app.route('/login', methods=['POST'])
+    async def login() -> quart.Response:
+        form = await quart.request.form
+        username = form['username']
+        password = form['password']
+        if (username not in REGISTERED_USERS
+                or REGISTERED_USERS[username] != password):
+            quart.session['ERROR'] = 'username not in REGISTERED_USERS or REGISTERED_USERS[username] != password'
+        else:
+            quart.session['logged_in'] = username
+
+        return quart.redirect(quart.url_for('login_html'))
+
+    @app.route('/logout', methods=['POST'])
+    async def logout() -> quart.Response:
+        quart.session.pop('logged_in', None)
+        return quart.redirect(quart.url_for('login_html'))
+
+    @app.route('/register', methods=['POST'])
+    async def register() -> quart.Response:
+        form = await quart.request.form
+        username = form['username']
+        password = form['password']
+
+        if username in REGISTERED_USERS:
+            quart.session['ERROR'] = 'username in REGISTERED_USERS'
+        else:
+            REGISTERED_USERS[username] = password
+
+        return quart.redirect(quart.url_for('login_html'))
+
+    @app.route('/login.html')
+    async def login_html() -> quart.Response:
+        body = await quart.render_template('login.html.jinja2',
+                                           REGISTERED_USERS=REGISTERED_USERS)
+        quart.session.pop('ERROR', None)
+        return quart.Response(body)
 
     await hypercorn.trio.serve(app, config)
 
