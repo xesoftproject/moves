@@ -4,12 +4,12 @@ import logging
 import typing
 
 import chess.engine
+import trio_asyncio
 
 from . import constants
 from . import types
 from .. import configurations
 from .. import triopubsub
-import trio_asyncio
 
 
 LOGS = logging.getLogger(__name__)

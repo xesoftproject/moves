@@ -1,10 +1,11 @@
+import typing
 import unittest
+
+import trio
 
 from moves import triopubsub
 
 from .. import testssupport
-import trio
-import typing
 
 
 class TrioPubSubTest(unittest.TestCase):

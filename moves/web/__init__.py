@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import typing
 
 import hypercorn.config
 import hypercorn.trio
@@ -10,7 +11,6 @@ import trio
 
 from .. import configurations
 from .. import logs
-import typing
 
 
 LOGS = logging.getLogger(__name__)

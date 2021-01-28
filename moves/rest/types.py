@@ -1,8 +1,8 @@
 import dataclasses
-import chess
-
 import enum
 import typing
+
+import chess
 
 
 class PlayerType(enum.Enum):

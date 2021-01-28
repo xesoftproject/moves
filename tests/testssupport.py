@@ -1,6 +1,7 @@
-import trio
 import functools
 import typing
+
+import trio
 
 
 def trio_test(afun: typing.Callable[..., typing.Awaitable[None]]
