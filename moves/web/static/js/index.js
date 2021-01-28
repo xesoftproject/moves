@@ -1,23 +1,12 @@
 'use strict';
 
-import { get_query_param } from './commons.js';
-import { QUERY_PARAMS_I_AM, PATH_GAME, QUERY_PARAMS_GAME_ID } from './constants.js';
+import { PATH_GAME, QUERY_PARAMS_GAME_ID } from './constants.js';
 import { start_new_game, games } from './moves-rest-client.js';
-
-
-// TODO identify the user by cookie / hw analysis
-let I_AM;
-try {
-	I_AM = get_query_param(QUERY_PARAMS_I_AM);
-}
-catch (error) {
-	window.alert('no I_AM!');
-	throw error;
-}
+import { I_AM } from './configuration.js'
 
 const join = (game_id) => {
-	window.open(`audio.html?${QUERY_PARAMS_I_AM}=${I_AM}&${QUERY_PARAMS_GAME_ID}=${game_id}`, '_blank');
-	window.location.assign(`${PATH_GAME}?${QUERY_PARAMS_I_AM}=${I_AM}&${QUERY_PARAMS_GAME_ID}=${game_id}`);
+	window.open(`audio.html?${QUERY_PARAMS_GAME_ID}=${game_id}`, '_blank');
+	window.location.assign(`${PATH_GAME}?${QUERY_PARAMS_GAME_ID}=${game_id}`);
 }
 
 const onload = async () => {

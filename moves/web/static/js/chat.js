@@ -1,16 +1,7 @@
 import { get_query_param } from './commons.js';
-import { QUERY_PARAMS_I_AM, QUERY_PARAMS_CHAT_ID } from './constants.js';
+import { QUERY_PARAMS_CHAT_ID } from './constants.js';
 import { chat } from './moves-chat-client.js';
-
-// TODO identify the user by cookie / hw analysis
-let I_AM;
-try {
-	I_AM = get_query_param(QUERY_PARAMS_I_AM);
-}
-catch (error) {
-	window.alert('no I_AM!');
-	throw error;
-}
+import { I_AM } from './configuration.js'
 
 let CHAT_ID;
 try {

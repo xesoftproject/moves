@@ -25,19 +25,8 @@ async function* register(game_id) {
 
 
 import { get_query_param } from './commons.js'
-import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
-
-
-
-// TODO identify the user by cookie / hw analysis
-let I_AM;
-try {
-	I_AM = get_query_param(QUERY_PARAMS_I_AM);
-}
-catch (error) {
-	window.alert('no I_AM!');
-	throw error;
-}
+import { QUERY_PARAMS_GAME_ID } from './constants.js';
+import { I_AM } from './configuration.js'
 
 // page requirement: ?game_id=xxx
 let GAME_ID;

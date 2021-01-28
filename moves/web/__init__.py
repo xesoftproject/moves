@@ -33,6 +33,9 @@ async def web() -> None:
 
     @app.route('/')
     async def index() -> quart.Response:
+        if 'logged_in' not in quart.session:
+            return quart.redirect(quart.url_for('login_html'))
+
         return typing.cast(quart.Response,
                            await quart.current_app.send_static_file('index.html'))
 
@@ -54,7 +57,7 @@ async def web() -> None:
         else:
             quart.session['logged_in'] = username
 
-        return quart.redirect(quart.url_for('login_html'))
+        return quart.redirect(quart.url_for('index'))
 
     @app.route('/logout', methods=['POST'])
     async def logout() -> quart.Response:

@@ -5,19 +5,9 @@ const STEP_DURATION = 1000;
 
 import { register } from './moves-rest-client.js';
 import { get_query_param } from './commons.js'
-import { QUERY_PARAMS_I_AM, QUERY_PARAMS_GAME_ID } from './constants.js';
+import { QUERY_PARAMS_GAME_ID } from './constants.js';
+import { I_AM } from './configuration.js'
 
-
-
-// TODO identify the user by cookie / hw analysis
-let I_AM;
-try {
-	I_AM = get_query_param(QUERY_PARAMS_I_AM);
-}
-catch (error) {
-	window.alert('no I_AM!');
-	throw error;
-}
 
 // page requirement: ?game_id=xxx
 let GAME_ID;
