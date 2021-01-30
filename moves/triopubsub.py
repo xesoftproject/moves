@@ -3,90 +3,30 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from math import inf
-from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Set, cast,\
-    Type
+from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, cast, Type
 from uuid import uuid4
 
-from trio import open_memory_channel, sleep
+from trio import open_memory_channel, sleep, MemoryReceiveChannel, MemorySendChannel
 
 
 T = TypeVar('T')
 Message = TypeVar('Message')
 
 
-class Subscriber(Generic[Message]):
-    def __init__(self) -> None:
-        s, r = open_memory_channel[Message](inf)
-        self.s = s
-        self.r = r
+@dataclass()
+class Subscription(Generic[Message]):
+    subscription_id: str
+    send_old_messages: bool = True
+    s: MemorySendChannel[Message] = field(init=False)
+    r: MemoryReceiveChannel[Message] = field(init=False)
 
-    async def subscribe(self,
-                        subscription: 'Subscription[Message]'
-                        ) -> AsyncIterator[Message]:
-        await subscription.subscribe(self)
-        async with self.r.clone() as r:
-            async for message in r:
-                yield message
+    def __post_init__(self) -> None:
+        self.s, self.r = open_memory_channel[Message](inf)
 
     async def message(self, message: Message) -> Message:
         async with self.s.clone() as s:
             await s.send(message)
-            return message
-
-    async def aclose(self) -> None:
-        await self.s.aclose()
-        await self.r.aclose()
-
-
-async def rr(ts: Set[T]) -> AsyncIterator[T]:
-    while True:
-        try:  # TODO: good enough?
-            for t in ts:
-                yield t
-        except RuntimeError:
-            pass
-        await sleep(0)
-
-
-@dataclass()
-class Subscription(Generic[Message]):
-    subscription_id: str
-    subscribers: Set[Subscriber[Message]] = field(default_factory=set)
-    rr: AsyncIterator[Subscriber[Message]] = field(init=False)
-    messages: List[Message] = field(default_factory=list)
-    send_old_messages: bool = True
-
-    def __post_init__(self) -> None:
-        self.rr = rr(self.subscribers)
-
-    async def message(self, message: Message) -> Message:
-        self.messages.append(message)
-
-        # ignore self if not subscribers
-        if not self.subscribers:
-            await sleep(0)
-            return message
-
-        subscriber = await self.rr.__anext__()
-        return await subscriber.message(message)
-
-    async def subscribe(self, subscriber: Subscriber[Message]) -> None:
-        self.subscribers.add(subscriber)
-
-        # send old messages
-        if self.messages:
-            for message in self.messages:
-                await subscriber.message(message)
-        else:
-            await sleep(0)
-
-    async def aclose(self) -> None:
-        if self.subscribers:
-            for subscriber in list(self.subscribers):  # always loop on a copy
-                await subscriber.aclose()
-            self.subscribers.clear()
-        else:
-            await sleep(0)
+        return message
 
 
 @dataclass()
@@ -122,16 +62,6 @@ class Topic(Generic[Message]):
 
         return message
 
-    async def remove_subscription(self,
-                                  subscription_id: str
-                                  ) -> None:
-        if subscription_id not in self.subscriptions:
-            await sleep(0)
-            raise KeyError(f'{subscription_id}')
-
-        await self.subscriptions[subscription_id].aclose()
-        del self.subscriptions[subscription_id]
-
 
 @dataclass()
 class Broker:
@@ -166,53 +96,33 @@ class Broker:
 
         return await cast(Topic[Message], self.topics[topic_id]).message(message)
 
-    async def subscribe(self,
-                        subscriber: Subscriber[Message],
-                        subscription_id: str
-                        ) -> AsyncIterator[Message]:
-        if subscription_id not in self.subscriptions:
-            await sleep(0)
-            raise KeyError(f'{subscription_id}')
-
-        subscription = self.subscriptions[subscription_id]
-        async for message in subscriber.subscribe(subscription):
-            yield message
-
-    async def remove_subscription(self,
-                                  topic_id: str,
-                                  subscription_id: str
-                                  ) -> None:
-        if topic_id not in self.topics:
-            await sleep(0)
-            raise KeyError(f'{topic_id}')
-        if subscription_id not in self.subscriptions:
-            await sleep(0)
-            raise KeyError(f'{subscription_id}')
-
-        await self.topics[topic_id].remove_subscription(subscription_id)
-        del self.subscriptions[subscription_id]
-
     @asynccontextmanager
     async def with_tmp_subscription(self,
                                     topic_id: str,
                                     _cls: Type[Message],
                                     send_old_messages: bool = True
                                     ) -> AsyncIterator[Subscription[Message]]:
+        if topic_id not in self.topics:
+            await sleep(0)
+            raise KeyError(f'{topic_id}')
+
         sub = await self.add_subscription(topic_id,
                                           Subscription[Message](str(uuid4()),
                                                                 send_old_messages=send_old_messages))
         try:
             yield sub
         finally:
-            await self.remove_subscription(topic_id, sub.subscription_id)
+            del self.topics[topic_id].subscriptions[sub.subscription_id]
 
     async def messages(self,
                        subscription_id: str,
                        _cls: Type[Message],
                        ) -> AsyncIterator[Message]:
-        subscriber = Subscriber[Message]()
-        try:
-            async for message in self.subscribe(subscriber, subscription_id):
+        if subscription_id not in self.subscriptions:
+            await sleep(0)
+            raise KeyError(f'{subscription_id}')
+
+        subscription = self.subscriptions[subscription_id]
+        async with subscription.r.clone() as r:
+            async for message in r:
                 yield message
-        finally:
-            self.subscriptions[subscription_id].subscribers.remove(subscriber)

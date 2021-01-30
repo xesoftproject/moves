@@ -18,52 +18,9 @@ class TrioPubSubTest(unittest.TestCase):
         await topic.message(message)
         await topic.add_subscription(subscription)
 
-        self.assertEqual([message], subscription.messages)
-
-    @testssupport.trio_test
-    async def test_memory_subscription(self) -> None:
-        subscription = triopubsub.Subscription[None]('subscription')
-        subscriber = triopubsub.Subscriber[None]()
-        message = None
-
-        await subscription.message(message)
-        aitor = subscriber.subscribe(subscription)
-        self.assertEqual(message, await testssupport.anext(aitor))
-
-    @testssupport.trio_test
-    async def test_rr(self) -> None:
-        d = {1, 2}
-        aitor = triopubsub.rr(d)
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(2, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(2, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-        d.add(3)
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(2, await testssupport.anext(aitor))
-        self.assertEqual(3, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(2, await testssupport.anext(aitor))
-        self.assertEqual(3, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-        d.remove(2)
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(3, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-        self.assertEqual(3, await testssupport.anext(aitor))
-        self.assertEqual(1, await testssupport.anext(aitor))
-
-    @testssupport.trio_test
-    async def test_simple_flow(self) -> None:
-        topic = triopubsub.Topic[int]('topic')
-        subscription = triopubsub.Subscription[int]('subscription')
-        subscriber = triopubsub.Subscriber[int]()
-        message = 123
-        await topic.add_subscription(subscription)
-        aitor = subscriber.subscribe(subscription)
-        await topic.message(message)
-        self.assertEqual(message, await testssupport.anext(aitor))
+        async with subscription.r.clone() as r:
+            actual = await testssupport.anext(r)
+        self.assertEqual(message, actual)
 
     @testssupport.trio_test
     async def test_demo(self) -> None:
@@ -87,8 +44,7 @@ class TrioPubSubTest(unittest.TestCase):
         await broker.send_message_to(m3, 't1')
 
         acc = []
-        async for message in broker.subscribe(triopubsub.Subscriber[str](),
-                                              's1a'):
+        async for message in broker.messages('s1a', str):
             acc.append(message)
             if message is m3:
                 break
@@ -106,23 +62,57 @@ class TrioPubSubTest(unittest.TestCase):
         await broker.add_subscription('topic',
                                       triopubsub.Subscription('subscription2'))
 
-        subscriber1 = triopubsub.Subscriber[str]()
-        subscriber2 = triopubsub.Subscriber[str]()
-
-        acc: typing.Dict[triopubsub.Subscriber[str], str] = {}
+        acc: typing.Dict[str, str] = {}
         async with trio.open_nursery() as nursery:
-            async def get_first_message(subscriber: triopubsub.Subscriber[str],
-                                        subscription_id: str
-                                        ) -> None:
-                async for message in broker.subscribe(subscriber, subscription_id):
-                    acc[subscriber] = message
+            async def get_first_message(subscription_id: str) -> None:
+                async for message in broker.messages(subscription_id, str):
+                    acc[subscription_id] = message
                     break
 
-            nursery.start_soon(get_first_message, subscriber1, 'subscription1')
-            nursery.start_soon(get_first_message, subscriber2, 'subscription2')
+            nursery.start_soon(get_first_message, 'subscription1')
+            nursery.start_soon(get_first_message, 'subscription2')
 
             await trio.sleep(0)
             await broker.send_message_to('message', 'topic')
 
-        self.assertEqual({subscriber1: 'message', subscriber2: 'message'},
+        self.assertEqual({'subscription1': 'message',
+                          'subscription2': 'message'},
                          acc)
+
+    @testssupport.trio_test
+    async def test_order(self) -> None:
+        broker = triopubsub.Broker()
+        broker.add_topic(triopubsub.Topic[str]('t'))
+        await broker.add_subscription('t', triopubsub.Subscription[str]('s'))
+
+        messages1 = 'ABCDE'
+        messages2 = '12345'
+
+        async def producer1() -> None:
+            for message in messages1:
+                await broker.send_message_to(message, 't')
+
+        async def producer2() -> None:
+            for message in messages2:
+                await broker.send_message_to(message, 't')
+
+        accumulator = []
+
+        async def consumer() -> None:
+            i = 0
+            async for message in broker.messages('s', str):
+                accumulator.append(message)
+                if i == len(messages1) + len(messages2) - 1:
+                    break
+                i += 1
+
+        # "preload" the topic
+        await producer1()
+        async with trio.open_nursery() as nursery:
+            # generates numbers
+            nursery.start_soon(consumer)
+            # consume letters and numbers (in this order)
+            nursery.start_soon(producer2)
+
+        self.assertListEqual(list(messages1 + messages2),
+                             accumulator)
