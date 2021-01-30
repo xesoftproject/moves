@@ -6,10 +6,6 @@
 <link rel="icon" type="image/png" href="img/xesoft.png">
 </head>
 <body>
-    <pre>
-        {{REGISTERED_USERS}}
-        {{session}}
-    </pre>
     <div>
         You are <b>{% if session.logged_in %} {{session.logged_in}} {% else
         %} NOT LOGGED {% endif %}</b>
