@@ -4,7 +4,7 @@ import logging
 import typing
 
 import chess.engine
-import trio_asyncio
+import trio
 
 from . import constants
 from . import types
@@ -19,8 +19,13 @@ async def cpu_move(engine: chess.engine.UciProtocol,
                    game_universe: types.GameUniverse
                    ) -> typing.AsyncIterator[types.InputQueueElement]:
     try:
-        result = await trio_asyncio.aio_as_trio(engine.play)(game_universe.board,
-                                                             chess.engine.Limit(time=5))
+        if configurations.running_on_ec2():
+            import trio_asyncio
+            result = await trio_asyncio.aio_as_trio(engine.play)(game_universe.board,
+                                                                 chess.engine.Limit(time=5))
+        else:
+            result = await trio.to_thread.run_sync(engine.play, game_universe.board,
+                                                   chess.engine.Limit(time=5))
     except chess.engine.EngineError:
         LOGS.exception('cannot play')
         return
@@ -73,7 +78,12 @@ async def cpu(broker: triopubsub.Broker) -> None:
 
     # IA
     try:
-        _, engine = await trio_asyncio.aio_as_trio(chess.engine.popen_uci)(configurations.STOCKFISH)
+        if configurations.running_on_ec2():
+            import trio_asyncio
+            _, engine = await trio_asyncio.aio_as_trio(chess.engine.popen_uci)(configurations.STOCKFISH)
+        else:
+            engine = chess.engine.SimpleEngine.popen_uci(
+                configurations.STOCKFISH)
     except:
         LOGS.error('configurations.STOCKFISH: %s', configurations.STOCKFISH)
         raise
