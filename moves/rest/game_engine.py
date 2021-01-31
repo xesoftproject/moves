@@ -73,19 +73,22 @@ async def game_engine(broker: triopubsub.Broker) -> None:
     '"passive" element: wait for inputs and handle them'
 
     # pub/sub "infrastructure"
-    subscription = triopubsub.Subscription[types.InputQueueElement](__name__)
+    subscription_id = __name__
 
-    await broker.add_subscription(constants.INPUT_TOPIC, subscription)
+    await broker.add_subscription(constants.INPUT_TOPIC,
+                                  subscription_id,
+                                  True,
+                                  types.InputQueueElement)
 
     # mutable multiverse
     games: typing.Dict[str, types.GameUniverse] = {}
 
     # main loop
-    async for input_element in broker.messages(__name__,
-                                               types.InputQueueElement):
+    async for input_element in broker.subscribe(subscription_id,
+                                                types.InputQueueElement):
         LOGS.info('input_element: %s', input_element)
 
         for output_element in handle(games, input_element):
             LOGS.info('output_element: %s', output_element)
 
-            await broker.send_message_to(output_element, constants.OUTPUT_TOPIC)
+            await broker.send(output_element, constants.OUTPUT_TOPIC)

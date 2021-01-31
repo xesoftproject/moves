@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from json import dumps
 from logging import getLogger
 from typing import cast
@@ -11,26 +9,30 @@ import quart_cors
 import quart_trio
 import trio
 
-from . import types as rest_types
-from .. import constants
-from .. import types
+from ..constants import INPUT_TOPIC, OUTPUT_TOPIC
 from ... import configurations
-from ... import triopubsub
+from ...triopubsub import Topic, Subscription, Broker
+from ..types import OutputQueueElement, Result
+from .types import GamesOutput, StartNewGameInput, RegisterOutput, UpdateInput
 
 
 LOGS = getLogger(__name__)
 
 
-async def rest(broker: triopubsub.Broker) -> None:
+async def rest(broker: Broker) -> None:
     'rest/ws server, expose the game engine to users'
 
     # pub/sub "infrastructure"
-    subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
-
-    topic_games = broker.add_topic(triopubsub.Topic[str]('games'))
-
-    await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
     # TODO: move to a topic per game?
+    subscription_id = __name__
+    topic_games_id = 'games'
+
+    await broker.add_subscription(OUTPUT_TOPIC,
+                                  subscription_id,
+                                  True,
+                                  OutputQueueElement)
+
+    await broker.add_topic(topic_games_id, str)
 
     config = hypercorn.config.Config()
     config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
@@ -50,7 +52,7 @@ async def rest(broker: triopubsub.Broker) -> None:
         body = await quart.request.json
         LOGS.info('start_new_game [body: %s]', body)
 
-        start_new_game_input = rest_types.StartNewGameInput(**body)
+        start_new_game_input = StartNewGameInput(**body)
         LOGS.info('start_new_game [start_new_game_input: %s]',
                   start_new_game_input)
 
@@ -65,21 +67,18 @@ async def rest(broker: triopubsub.Broker) -> None:
         async def get_game_id() -> None:
             nonlocal game_id
 
-            async with broker.with_tmp_subscription(constants.OUTPUT_TOPIC,
-                                                    types.OutputQueueElement,
-                                                    send_old_messages=False
-                                                    ) as game_id_subscription:
-                async for game_id_message in broker.messages(game_id_subscription.subscription_id,
-                                                             types.OutputQueueElement):
-                    output_element = game_id_message
-                    LOGS.info('output_element: %s', output_element)
-                    if output_element.result != types.Result.GAME_CREATED:
-                        continue
-                    game_id = output_element.game_universe.game_id
-                    break
+            async for game_id_message in broker.subscribe_topic(OUTPUT_TOPIC,
+                                                                False,
+                                                                OutputQueueElement):
+                output_element = game_id_message
+                LOGS.info('output_element: %s', output_element)
+                if output_element.result != Result.GAME_CREATED:
+                    continue
+                game_id = output_element.game_universe.game_id
+                break
 
         async def send_start_game() -> None:
-            await broker.send_message_to(input_element, constants.INPUT_TOPIC)
+            await broker.send(input_element, INPUT_TOPIC)
 
         async with trio.open_nursery() as nursery:
             nursery.start_soon(get_game_id)
@@ -91,10 +90,8 @@ async def rest(broker: triopubsub.Broker) -> None:
         full = all([input_element.white is not None,
                     input_element.black is not None])
 
-        await broker.send_message_to(rest_types.GamesOutput('add',
-                                                            game_id,
-                                                            full=full),
-                                     topic_games.topic_id)
+        await broker.send(GamesOutput('add', game_id, full=full),
+                          topic_games_id)
 
         return game_id
 
@@ -103,13 +100,13 @@ async def rest(broker: triopubsub.Broker) -> None:
         body = quart.request.json
         LOGS.info('update [body: {}]', body)
 
-        update_input = rest_types.UpdateInput(**body)
+        update_input = UpdateInput(**body)
         LOGS.info('update [update_input: {}]', update_input)
 
         input_element = update_input.input_queue_element()
         LOGS.info('update [input_element: {}]', input_element)
 
-        await broker.send_message_to(input_element, constants.INPUT_TOPIC)
+        await broker.send(input_element, INPUT_TOPIC)
 
         return str(input_element)
 
@@ -117,14 +114,14 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
-        async for output_element in broker.messages(subscription.subscription_id,
-                                                    types.OutputQueueElement):
+        async for output_element in broker.subscribe(subscription_id,
+                                                     OutputQueueElement):
             LOGS.info('output_element: %s', output_element)
 
             if game_id != output_element.game_universe.game_id:
                 continue
 
-            register_output = rest_types.RegisterOutput.from_output_queue_element(
+            register_output = RegisterOutput.from_output_queue_element(
                 output_element)
 
             await quart.websocket.send(register_output.json())
@@ -133,13 +130,11 @@ async def rest(broker: triopubsub.Broker) -> None:
     async def games() -> None:
         LOGS.info('games()')
 
-        async with broker.with_tmp_subscription(topic_games.topic_id,
-                                                rest_types.GamesOutput
-                                                ) as games_subscription:
-            async for games_output in broker.messages(games_subscription.subscription_id,
-                                                      rest_types.GamesOutput):
-                LOGS.info('games [games_output: %s]', games_output)
+        async for games_output in broker.subscribe_topic(topic_games_id,
+                                                         True,
+                                                         GamesOutput):
+            LOGS.info('games [games_output: %s]', games_output)
 
-                await quart.websocket.send(games_output.json())
+            await quart.websocket.send(games_output.json())
 
     await hypercorn.trio.serve(app, config)

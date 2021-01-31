@@ -14,16 +14,19 @@ from .. import triopubsub
 
 LOGS = logging.getLogger(__name__)
 
+UnionEngine = typing.Union[chess.engine.SimpleEngine, chess.engine.UciProtocol]
 
-async def cpu_move(engine: chess.engine.UciProtocol,
-                   game_universe: types.GameUniverse
-                   ) -> typing.AsyncIterator[types.InputQueueElement]:
+
+async def cpu_move(engine: UnionEngine,
+                   game_universe: types.GameUniverse) -> typing.AsyncIterator[types.InputQueueElement]:
     try:
         if configurations.running_on_ec2():
             import trio_asyncio
+            assert isinstance(engine, chess.engine.UciProtocol)
             result = await trio_asyncio.aio_as_trio(engine.play)(game_universe.board,
                                                                  chess.engine.Limit(time=5))
         else:
+            assert isinstance(engine, chess.engine.SimpleEngine)
             result = await trio.to_thread.run_sync(engine.play, game_universe.board,
                                                    chess.engine.Limit(time=5))
     except chess.engine.EngineError:
@@ -37,9 +40,8 @@ async def cpu_move(engine: chess.engine.UciProtocol,
                                       move=move.uci())
 
 
-async def handle(engine: chess.engine.UciProtocol,
-                 output_element: types.OutputQueueElement
-                 ) -> typing.AsyncIterator[types.InputQueueElement]:
+async def handle(engine: UnionEngine,
+                 output_element: types.OutputQueueElement) -> typing.AsyncIterator[types.InputQueueElement]:
     if output_element.result == types.Result.ERROR:
         return  # nothing to do here
 
@@ -72,11 +74,15 @@ async def cpu(broker: triopubsub.Broker) -> None:
     '"passive" element: wait for inputs and handle them'
 
     # pub/sub "infrastructure"
-    subscription = triopubsub.Subscription[types.OutputQueueElement](__name__)
+    subscription_id = __name__
 
-    await broker.add_subscription(constants.OUTPUT_TOPIC, subscription)
+    await broker.add_subscription(constants.OUTPUT_TOPIC,
+                                  subscription_id,
+                                  True,
+                                  types.OutputQueueElement)
 
     # IA
+    engine: UnionEngine
     try:
         if configurations.running_on_ec2():
             import trio_asyncio
@@ -89,11 +95,11 @@ async def cpu(broker: triopubsub.Broker) -> None:
         raise
 
     # main loop
-    async for output_element in broker.messages(__name__,
-                                                types.OutputQueueElement):
+    async for output_element in broker.subscribe(subscription_id,
+                                                 types.OutputQueueElement):
         LOGS.info('output_element: %s', output_element)
 
         async for input_element in handle(engine, output_element):
             LOGS.info('input_element: %s', input_element)
 
-            await broker.send_message_to(input_element, constants.INPUT_TOPIC)
+            await broker.send(input_element, constants.INPUT_TOPIC)

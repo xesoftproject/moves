@@ -33,10 +33,8 @@ async def parent() -> None:
 
     # 2 topics (in+out) - the needed subscription will be created by each task
     broker = triopubsub.Broker()
-    broker.add_topic(
-        triopubsub.Topic[types.InputQueueElement](constants.INPUT_TOPIC))
-    broker.add_topic(
-        triopubsub.Topic[types.OutputQueueElement](constants.OUTPUT_TOPIC))
+    await broker.add_topic(constants.INPUT_TOPIC, types.InputQueueElement)
+    await broker.add_topic(constants.OUTPUT_TOPIC, types.OutputQueueElement)
 
     async with trio.open_nursery() as nursery:
         # game engine
