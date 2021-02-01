@@ -1,5 +1,5 @@
 import functools
-from typing import *
+from typing import Callable, Awaitable, Any, TypeVar, AsyncIterator, AsyncIterable, Tuple, List
 
 import trio
 

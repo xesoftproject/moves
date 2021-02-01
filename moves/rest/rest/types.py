@@ -1,13 +1,11 @@
 'rest types'
 
-from __future__ import annotations
-
 from dataclasses import dataclass, asdict
 from json import dumps
 from typing import Optional, Tuple, Literal
 from uuid import uuid4
 
-from .. import types
+from ..types import Player, PlayerType, InputQueueElement, Command, OutputQueueElement
 
 
 Type = Literal['cpu', 'human']
@@ -19,8 +17,7 @@ class StartNewGameInput:
     white: Type
     black: Type
 
-    def _players(self
-                 ) -> Tuple[types.Player, Optional[types.Player]]:
+    def _players(self) -> Tuple[Player, Optional[Player]]:
         '''4 options:
         human VS human -> white is player, black is None
         human VS cpu -> white is player, black is cpu (random id)
@@ -29,25 +26,25 @@ class StartNewGameInput:
         '''
 
         if self.white == 'human':
-            white = types.Player(self.user_id, types.PlayerType.HUMAN)
+            white = Player(self.user_id, PlayerType.HUMAN)
             if self.black == 'human':
                 black = None
             else:
-                black = types.Player(str(uuid4()), types.PlayerType.CPU)
+                black = Player(str(uuid4()), PlayerType.CPU)
         else:
-            white = types.Player(str(uuid4()), types.PlayerType.CPU)
+            white = Player(str(uuid4()), PlayerType.CPU)
             if self.black == 'human':
-                black = types.Player(self.user_id, types.PlayerType.HUMAN)
+                black = Player(self.user_id, PlayerType.HUMAN)
             else:
-                black = types.Player(str(uuid4()), types.PlayerType.CPU)
+                black = Player(str(uuid4()), PlayerType.CPU)
 
         return (white, black)
 
-    def input_queue_element(self) -> types.InputQueueElement:
+    def input_queue_element(self) -> InputQueueElement:
         (white, black) = self._players()
-        return types.InputQueueElement(command=types.Command.NEW_GAME,
-                                       white=white,
-                                       black=black)
+        return InputQueueElement(command=Command.NEW_GAME,
+                                 white=white,
+                                 black=black)
 
 
 @dataclass()
@@ -56,10 +53,10 @@ class UpdateInput:
     game_id: str
     move: str
 
-    def input_queue_element(self) -> types.InputQueueElement:
-        return types.InputQueueElement(command=types.Command.MOVE,
-                                       game_id=self.game_id,
-                                       move=self.move)
+    def input_queue_element(self) -> InputQueueElement:
+        return InputQueueElement(command=Command.MOVE,
+                                 game_id=self.game_id,
+                                 move=self.move)
 
 
 Op = Literal['add', 'remove', 'update']
@@ -83,8 +80,7 @@ class RegisterOutput:
 
     @classmethod
     def from_output_queue_element(cls,
-                                  output_element: types.OutputQueueElement
-                                  ) -> 'RegisterOutput':
+                                  output_element: OutputQueueElement) -> 'RegisterOutput':
         board = output_element.game_universe.board
 
         return RegisterOutput(output_element.move,

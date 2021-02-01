@@ -8,10 +8,10 @@ import { I_AM } from './configuration.js'
 const onload = async () => {
 	document.querySelector('h2').textContent = I_AM;
 
-	document.querySelector('button').addEventListener('click', async (e) => {
+	document.querySelector('form').addEventListener('submit', async (e) => {
 		e.preventDefault();
 
-		await create_chat(document.querySelector('input').value);
+		await create_chat(document.querySelector('input[name="chat_id"]').value);
 	});
 
 	for await (const chat_id of chats()) {

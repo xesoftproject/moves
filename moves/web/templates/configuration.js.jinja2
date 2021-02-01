@@ -4,4 +4,8 @@ export const HOSTNAME = '{{configurations.HOSTNAME}}';
 export const REST_PORT = '{{configurations.REST_PORT}}';
 export const CHAT_PORT = '{{configurations.CHAT_PORT}}';
 // login stuff
-export const I_AM = '{{session.logged_in}}';
+{% if session.logged_in %}
+	export const I_AM = '{{session.logged_in}}';
+{% else %}
+	throw Exception('NO IAM');
+{% endif %}

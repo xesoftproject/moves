@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		document.querySelector('dl').appendChild(dd);
 	};
 
-	document.querySelector('button').addEventListener('click', (e) => {
+	document.querySelector('form').addEventListener('submit', (e) => {
 		e.preventDefault();
 
 		ws_chat.send(JSON.stringify({

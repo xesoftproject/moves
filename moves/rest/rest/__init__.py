@@ -41,13 +41,13 @@ async def rest(broker: Broker) -> None:
     if configurations.KEYFILE:
         config.keyfile = configurations.KEYFILE
 
-    app = cast(quart_trio.QuartTrio,
+    mk_app = cast(quart_trio.QuartTrio,
                quart_cors.cors(quart_trio.QuartTrio(__name__),
                                allow_origin='*',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
-    @app.route('/start_new_game', methods=['POST'])
+    @mk_app.route('/start_new_game', methods=['POST'])
     async def start_new_game() -> str:
         body = await quart.request.json
         LOGS.info('start_new_game [body: %s]', body)
@@ -95,7 +95,7 @@ async def rest(broker: Broker) -> None:
 
         return game_id
 
-    @app.route('/update', methods=['POST'])
+    @mk_app.route('/update', methods=['POST'])
     async def update() -> str:            # supposedly called by transcribe
         body = quart.request.json
         LOGS.info('update [body: {}]', body)
@@ -110,7 +110,7 @@ async def rest(broker: Broker) -> None:
 
         return str(input_element)
 
-    @app.websocket('/register/<string:game_id>')
+    @mk_app.websocket('/register/<string:game_id>')
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
@@ -126,7 +126,7 @@ async def rest(broker: Broker) -> None:
 
             await quart.websocket.send(register_output.json())
 
-    @app.websocket('/games')
+    @mk_app.websocket('/games')
     async def games() -> None:
         LOGS.info('games()')
 
@@ -137,4 +137,4 @@ async def rest(broker: Broker) -> None:
 
             await quart.websocket.send(games_output.json())
 
-    await hypercorn.trio.serve(app, config)
+    await hypercorn.trio.serve(mk_app, config)

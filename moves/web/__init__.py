@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import secrets
 import typing
@@ -17,7 +15,7 @@ from .. import logs
 LOGS = logging.getLogger(__name__)
 
 
-REGISTERED_USERS: typing.Dict[str, str] = {}
+REGISTERED_USERS = {'a': '', 'b': '', 'c': '', 'd': ''}
 
 
 async def web() -> None:
@@ -28,10 +26,10 @@ async def web() -> None:
     if configurations.KEYFILE:
         config.keyfile = configurations.KEYFILE
 
-    app = quart_trio.QuartTrio(__name__, static_url_path='/')
-    app.secret_key = secrets.token_urlsafe(32)
+    mk_app = quart_trio.QuartTrio(__name__, static_url_path='/')
+    mk_app.secret_key = secrets.token_urlsafe(32)
 
-    @app.route('/')
+    @mk_app.route('/')
     async def index() -> quart.Response:
         if 'logged_in' not in quart.session:
             return quart.redirect(quart.url_for('login_html'))
@@ -39,14 +37,14 @@ async def web() -> None:
         return typing.cast(quart.Response,
                            await quart.current_app.send_static_file('index.html'))
 
-    @app.route('/js/configuration.js')
+    @mk_app.route('/js/configuration.js')
     async def web() -> quart.Response:
         body = await quart.render_template('configuration.js.jinja2',
                                            configurations=configurations)
         return quart.Response(body,
                               mimetype='application/javascript; charset=utf-8')
 
-    @app.route('/login', methods=['POST'])
+    @mk_app.route('/login', methods=['POST'])
     async def login() -> quart.Response:
         form = await quart.request.form
         username = form['username']
@@ -59,12 +57,12 @@ async def web() -> None:
 
         return quart.redirect(quart.url_for('index'))
 
-    @app.route('/logout', methods=['POST'])
+    @mk_app.route('/logout', methods=['POST'])
     async def logout() -> quart.Response:
         quart.session.pop('logged_in', None)
         return quart.redirect(quart.url_for('login_html'))
 
-    @app.route('/register', methods=['POST'])
+    @mk_app.route('/register', methods=['POST'])
     async def register() -> quart.Response:
         form = await quart.request.form
         username = form['username']
@@ -75,16 +73,16 @@ async def web() -> None:
         else:
             REGISTERED_USERS[username] = password
 
-        return quart.redirect(quart.url_for('login_html'))
+        return quart.redirect(quart.url_for('login_html'))  
 
-    @app.route('/login.html')
+    @mk_app.route('/login.html')
     async def login_html() -> quart.Response:
         body = await quart.render_template('login.html.jinja2',
                                            REGISTERED_USERS=REGISTERED_USERS)
         quart.session.pop('ERROR', None)
         return quart.Response(body)
 
-    await hypercorn.trio.serve(app, config)
+    await hypercorn.trio.serve(mk_app, config)
 
 
 def main() -> None:

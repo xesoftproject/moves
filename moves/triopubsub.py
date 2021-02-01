@@ -14,7 +14,6 @@ T = TypeVar('T')
 @dataclass()
 class Subscription(Generic[T]):
     subscription_id: str
-    send_old_messages: bool
     s: MemorySendChannel[T] = field(init=False)
     r: MemoryReceiveChannel[T] = field(init=False)
 
@@ -47,11 +46,11 @@ class Topic(Generic[T]):
         if subscription_id in self.subscriptions:
             raise KeyError(f'{subscription_id}')
 
-        subscription = Subscription[T](subscription_id, send_old_messages)
+        subscription = Subscription[T](subscription_id)
         self.subscriptions[subscription_id] = subscription
 
         # send old messages
-        if subscription.send_old_messages and self.messages:
+        if send_old_messages and self.messages:
             for message in self.messages[:]:
                 await subscription.send(message)
 
@@ -129,15 +128,16 @@ class Broker:
                               _cls: Type[T]) -> AsyncIterator[T]:
         subscription_id = str(uuid4())
 
-        await self.add_subscription(topic_id,
-                                    subscription_id,
-                                    send_old_messages,
-                                    _cls)
+        subscription = await self.add_subscription(topic_id,
+                                                   subscription_id,
+                                                   send_old_messages,
+                                                   _cls)
         try:
             async for message in self.subscribe(subscription_id, _cls):
                 yield message
         finally:
             await self.remove_subscription(topic_id, subscription_id)
+            subscription.aclose()
 
     async def aclose(self) -> None:
         for topic in self.topics.values():

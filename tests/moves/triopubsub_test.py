@@ -3,9 +3,9 @@ import unittest
 
 import trio
 
-from moves.triopubsub import Broker, Topic, Subscription
+from moves.triopubsub import Broker
 
-from ..testssupport import trio_test, anext, aenumerate, atake
+from ..testssupport import trio_test, anext, atake
 
 
 class TrioPubSubTest(unittest.TestCase):
@@ -84,15 +84,12 @@ class TrioPubSubTest(unittest.TestCase):
             for message in messages2:
                 await broker.send(message, 't')
 
-        accumulator = []
+        accumulator: typing.List[str]
 
         async def consumer() -> None:
-            i = 0
-            async for message in broker.subscribe('s', str):
-                accumulator.append(message)
-                if i == len(messages1) + len(messages2) - 1:
-                    break
-                i += 1
+            nonlocal accumulator
+            accumulator = await atake(len(messages1) + len(messages2),
+                                      broker.subscribe('s', str))
 
         # "preload" the topic
         await producer1()
@@ -164,3 +161,27 @@ class TrioPubSubTest(unittest.TestCase):
             await broker.send(i, 'topic')
         actual = await atake(3, broker.subscribe_topic('topic', True, int))
         self.assertListEqual(list(range(3)), actual)
+
+    @trio_test
+    async def test_sub_wait(self) -> None:
+        broker = Broker()
+        await broker.add_topic('topic', str)
+        await broker.send('old1', 'topic')
+        await broker.send('old2', 'topic')
+        await broker.send('old3', 'topic')
+
+        async def producer() -> None:
+            await broker.send('new1', 'topic')
+            await broker.send('new2', 'topic')
+
+        acc: typing.List[str]
+
+        async def consumer() -> None:
+            nonlocal acc
+            acc = await atake(5, broker.subscribe_topic('topic', True, str))
+
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(consumer)
+            nursery.start_soon(producer)
+
+        self.assertListEqual(['old1', 'old2', 'old3', 'new1', 'new2'], acc)

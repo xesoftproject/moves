@@ -1,21 +1,18 @@
-import logging
-import math
-import typing
+from logging import Logger
 
-import trio
+from trio import run, open_nursery
 
-from . import constants
-from . import cpu
-from . import game_engine
-from . import rest
-from . import types
-from .. import autils
-from .. import configurations
-from .. import logs
-from .. import triopubsub
+from ..configurations import running_on_ec2
+from ..logs import setup_logs
+from ..triopubsub import Broker
+from .constants import INPUT_TOPIC, OUTPUT_TOPIC
+from .cpu import cpu
+from .game_engine import game_engine
+from .rest import rest
+from .types import InputQueueElement, OutputQueueElement
 
 
-LOGS = logging.Logger(__name__)
+LOGS = Logger(__name__)
 
 
 async def parent() -> None:
@@ -32,26 +29,31 @@ async def parent() -> None:
     '''
 
     # 2 topics (in+out) - the needed subscription will be created by each task
-    broker = triopubsub.Broker()
-    await broker.add_topic(constants.INPUT_TOPIC, types.InputQueueElement)
-    await broker.add_topic(constants.OUTPUT_TOPIC, types.OutputQueueElement)
+    broker = Broker()
+    await broker.add_topic(INPUT_TOPIC, InputQueueElement)
+    await broker.add_topic(OUTPUT_TOPIC, OutputQueueElement)
 
-    async with trio.open_nursery() as nursery:
-        # game engine
-        nursery.start_soon(game_engine.game_engine, broker)
+    try:
+        async with open_nursery() as nursery:
+            # game engine
+            nursery.start_soon(game_engine, broker)
 
-        # input and output from/to humans
-        nursery.start_soon(rest.rest, broker)
+            # input and output from/to humans
+            nursery.start_soon(rest, broker)
 
-        # input and output from/to cpu
-        nursery.start_soon(cpu.cpu, broker)
+            # input and output from/to cpu
+            nursery.start_soon(cpu, broker)
+    finally:
+        await broker.remove_topic(INPUT_TOPIC)
+        await broker.remove_topic(OUTPUT_TOPIC)
+        await broker.aclose()
 
 
 def main() -> None:
-    logs.setup_logs(__name__)
+    setup_logs(__name__)
 
-    if configurations.running_on_ec2():
-        import trio_asyncio
-        trio_asyncio.run(parent)
+    if running_on_ec2():
+        from trio_asyncio import run as trio_asyncio_run
+        trio_asyncio_run(parent)
     else:
-        trio.run(parent)
+        run(parent)
