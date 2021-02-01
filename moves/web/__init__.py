@@ -73,7 +73,7 @@ async def web() -> None:
         else:
             REGISTERED_USERS[username] = password
 
-        return quart.redirect(quart.url_for('login_html'))  
+        return quart.redirect(quart.url_for('login_html'))
 
     @mk_app.route('/login.html')
     async def login_html() -> quart.Response:
@@ -82,7 +82,7 @@ async def web() -> None:
         quart.session.pop('ERROR', None)
         return quart.Response(body)
 
-    await hypercorn.trio.serve(mk_app, config)
+    await hypercorn.trio.serve(mk_app, config)  # type: ignore
 
 
 def main() -> None:

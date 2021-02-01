@@ -29,7 +29,6 @@ async def rest(broker: Broker) -> None:
 
     await broker.add_subscription(OUTPUT_TOPIC,
                                   subscription_id,
-                                  True,
                                   OutputQueueElement)
 
     broker.add_topic(topic_games_id, str)
@@ -41,13 +40,13 @@ async def rest(broker: Broker) -> None:
     if configurations.KEYFILE:
         config.keyfile = configurations.KEYFILE
 
-    mk_app = cast(quart_trio.QuartTrio,
+    app = cast(quart_trio.QuartTrio,
                quart_cors.cors(quart_trio.QuartTrio(__name__),
                                allow_origin='*',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
-    @mk_app.route('/start_new_game', methods=['POST'])
+    @app.route('/start_new_game', methods=['POST'])
     async def start_new_game() -> str:
         body = await quart.request.json
         LOGS.info('start_new_game [body: %s]', body)
@@ -68,8 +67,8 @@ async def rest(broker: Broker) -> None:
             nonlocal game_id
 
             async for game_id_message in broker.subscribe_topic(OUTPUT_TOPIC,
-                                                                False,
-                                                                OutputQueueElement):
+                                                                OutputQueueElement,
+                                                                send_old_messages=False):
                 output_element = game_id_message
                 LOGS.info('output_element: %s', output_element)
                 if output_element.result != Result.GAME_CREATED:
@@ -95,7 +94,7 @@ async def rest(broker: Broker) -> None:
 
         return game_id
 
-    @mk_app.route('/update', methods=['POST'])
+    @app.route('/update', methods=['POST'])
     async def update() -> str:            # supposedly called by transcribe
         body = quart.request.json
         LOGS.info('update [body: {}]', body)
@@ -110,7 +109,7 @@ async def rest(broker: Broker) -> None:
 
         return str(input_element)
 
-    @mk_app.websocket('/register/<string:game_id>')
+    @app.websocket('/register/<string:game_id>')
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
@@ -126,15 +125,14 @@ async def rest(broker: Broker) -> None:
 
             await quart.websocket.send(register_output.json())
 
-    @mk_app.websocket('/games')
+    @app.websocket('/games')
     async def games() -> None:
         LOGS.info('games()')
 
         async for games_output in broker.subscribe_topic(topic_games_id,
-                                                         True,
                                                          GamesOutput):
             LOGS.info('games [games_output: %s]', games_output)
 
             await quart.websocket.send(games_output.json())
 
-    await hypercorn.trio.serve(mk_app, config)
+    await hypercorn.trio.serve(app, config) # type: ignore

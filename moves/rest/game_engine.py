@@ -75,7 +75,6 @@ async def game_engine(broker: Broker) -> None:
 
     await broker.add_subscription(INPUT_TOPIC,
                                   subscription_id,
-                                  True,
                                   InputQueueElement)
 
     try:

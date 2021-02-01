@@ -76,7 +76,6 @@ async def cpu(broker: triopubsub.Broker) -> None:
 
     await broker.add_subscription(constants.OUTPUT_TOPIC,
                                   subscription_id,
-                                  True,
                                   types.OutputQueueElement)
 
     # IA

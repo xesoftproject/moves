@@ -6,7 +6,7 @@ from hypercorn.trio import serve
 from quart import websocket
 from quart_cors import cors
 from quart_trio import QuartTrio
-from trio import run, open_nursery
+from trio import run, open_nursery, sleep
 
 from .configurations import CHAT_PORT, CERTFILE, KEYFILE
 from .logs import setup_logs
@@ -40,7 +40,7 @@ async def mk_app() -> QuartTrio:
 
         await websocket.accept()
 
-        async for chat_id in broker.subscribe_topic(chats_topic_id, True, str):
+        async for chat_id in broker.subscribe_topic(chats_topic_id, str):
             await websocket.send(chat_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
@@ -65,7 +65,11 @@ async def mk_app() -> QuartTrio:
             await broker.send(loads(message), chat_id)
 
         async def receive_messages(chat_id: str) -> None:
-            async for message in broker.subscribe_topic(chat_id, True, ChatMessage):
+            await sleep(0)
+            await sleep(0)
+            await sleep(0)
+            await sleep(0)
+            async for message in broker.subscribe_topic(chat_id, ChatMessage):
                 await websocket.send(dumps(message))
 
         async with open_nursery() as nursery:
@@ -84,7 +88,7 @@ async def chat() -> None:
     if KEYFILE:
         config.keyfile = KEYFILE
 
-    await serve(await mk_app(), config)
+    await serve(await mk_app(), config)  # type: ignore
 
 
 def main() -> None:
