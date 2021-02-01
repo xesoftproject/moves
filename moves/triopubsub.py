@@ -1,29 +1,35 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 from math import inf
-from typing import List, Dict, AsyncIterator, Generic, TypeVar, Any, Type
+from typing import Any
+from typing import AsyncIterable
+from typing import AsyncIterator
+from typing import Dict
+from typing import Generic
+from typing import List
+from typing import Type
+from typing import TypeVar
+from typing import cast
 from uuid import uuid4
 
-from trio import open_memory_channel, MemoryReceiveChannel, MemorySendChannel, sleep
+from async_generator import aclosing
+from trio import open_memory_channel
+from trio import sleep
+from trio.abc import AsyncResource
 
 
 T = TypeVar('T')
 
 
-@dataclass()
-class Subscription(Generic[T]):
-    subscription_id: str
-    s: MemorySendChannel[T] = field(init=False)
-    r: MemoryReceiveChannel[T] = field(init=False)
-
-    def __post_init__(self) -> None:
+class Subscription(Generic[T], AsyncResource):
+    def __init__(self) -> None:
         self.s, self.r = open_memory_channel[T](inf)
 
     async def send(self, message: T) -> None:
-        async with self.s.clone() as s:
-            return await s.send(message)
+        return await self.s.send(message)
 
     async def subscribe(self) -> AsyncIterator[T]:
         async with self.r.clone() as r:
@@ -35,32 +41,35 @@ class Subscription(Generic[T]):
         await self.r.aclose()
 
 
-@dataclass()
-class Topic(Generic[T]):
-    topic_id: str
-    subscriptions: Dict[str, Subscription[T]] = field(default_factory=dict)
-    messages: List[T] = field(default_factory=list)
+class Topic(Generic[T], AsyncResource):
+    def __init__(self) -> None:
+        self.subscriptions: Dict[str, Subscription[T]] = {}
+        self.messages: List[T] = []
 
-    async def add_subscription(self,
-                               subscription_id: str,
-                               send_old_messages: bool) -> Subscription[T]:
+    async def add_subscription(self, subscription_id: str, *,
+                               send_old_messages: bool = True) -> Subscription[T]:
         if subscription_id in self.subscriptions:
-            raise KeyError(f'{subscription_id}')
+            raise KeyError(subscription_id)
 
-        subscription = Subscription[T](subscription_id)
-        self.subscriptions[subscription_id] = subscription
+        subscription = Subscription[T]()
 
         # send old messages
-        if send_old_messages and self.messages:
-            for message in self.messages[:]:
-                await subscription.send(message)
+        if send_old_messages:
+            messages = list(self.messages)
+            if messages:
+                for message in messages:
+                    await subscription.send(message)
+            else:
+                await sleep(0)
         else:
             await sleep(0)
 
+        self.subscriptions[subscription_id] = subscription
         return subscription
 
     async def remove_subscription(self, subscription_id: str)->None:
-        await sleep(0)
+        subscription = self.subscriptions[subscription_id]
+        await subscription.aclose()
         del self.subscriptions[subscription_id]
 
     async def send(self, message: T) -> T:
@@ -77,44 +86,42 @@ class Topic(Generic[T]):
         return message
 
     async def aclose(self) -> None:
-        subscriptions = list(self.subscriptions.values())
-        if subscriptions:
-            for subscription in subscriptions:
-                await subscription.aclose()
+        subscription_ids = list(self.subscriptions.keys())
+        if subscription_ids:
+            for subscription_id in subscription_ids:
+                await self.remove_subscription(subscription_id)
         else:
             await sleep(0)
 
 
 @dataclass()
-class Broker:
+class Broker(AsyncResource):
     topics: Dict[str, Topic[Any]] = field(default_factory=dict)
     subscriptions: Dict[str, Subscription[Any]] = field(default_factory=dict)
 
-    async def add_topic(self, topic_id: str, _cls: Type[T]) -> Topic[T]:
+    def add_topic(self, topic_id: str, _cls: Type[T]) -> Topic[T]:
         if topic_id in self.topics:
-            raise KeyError(f'{topic_id}')
+            raise KeyError(topic_id)
 
-        await sleep(0)
-        topic = Topic[T](topic_id)
+        topic = Topic[T]()
         self.topics[topic_id] = topic
         return topic
 
     async def add_subscription(self,
                                topic_id: str,
                                subscription_id: str,
-                               send_old_messages: bool,
-                               _cls: Type[T]) -> Subscription[T]:
+                               _cls: Type[T],
+                               *,
+                               send_old_messages: bool=True) -> Subscription[T]:
         if topic_id not in self.topics:
-            raise KeyError(f'{topic_id}')
+            raise KeyError(topic_id)
 
         subscription = await self.topics[topic_id].add_subscription(subscription_id,
-                                                                    send_old_messages)
+                                                                    send_old_messages=send_old_messages)
         self.subscriptions[subscription_id] = subscription
         return subscription
 
-    async def remove_subscription(self,
-                                  topic_id: str,
-                                  subscription_id: str) -> None:
+    async def remove_subscription(self, topic_id: str, subscription_id: str) -> None:
         del self.subscriptions[subscription_id]
         await self.topics[topic_id].remove_subscription(subscription_id)
 
@@ -122,45 +129,40 @@ class Broker:
         subscription_ids = list(self.topics[topic_id].subscriptions.keys())
         for subscription_id in subscription_ids:
             await self.remove_subscription(topic_id, subscription_id)
-        else:
-            await sleep(0)
         del self.topics[topic_id]
 
     async def send(self, message: T, topic_id: str) -> None:
         await self.topics[topic_id].send(message)
 
-    async def subscribe(self,
-                        subscription_id: str,
-                        _cls: Type[T]) -> AsyncIterator[T]:
-        async for message in self.subscriptions[subscription_id].subscribe():
-            yield message
+    async def subscribe(self, subscription_id: str, _cls: Type[T]) -> AsyncIterator[T]:
+        async with aclosing(cast(AsyncResource,
+                                 self.subscriptions[subscription_id].subscribe())) as aiter:
+            async for message in cast(AsyncIterable[T], aiter):
+                yield message
 
     @asynccontextmanager
-    async def tmp_subscription(self,
-                               topic_id: str,
-                               send_old_messages: bool,
-                               _cls: Type[T]) -> AsyncIterator[str]:
+    async def tmp_subscription(self, topic_id: str, _cls: Type[T], *,
+                               send_old_messages: bool=True) -> AsyncIterator[str]:
         subscription_id = str(uuid4())
 
         subscription = await self.add_subscription(topic_id,
                                                    subscription_id,
-                                                   send_old_messages,
-                                                   _cls)
+                                                   _cls,
+                                                   send_old_messages=send_old_messages)
         try:
             yield subscription_id
         finally:
             await self.remove_subscription(topic_id, subscription_id)
             await subscription.aclose()
 
-    async def subscribe_topic(self,
-                              topic_id: str,
-                              send_old_messages: bool,
-                              _cls: Type[T]) -> AsyncIterator[T]:
-        async with self.tmp_subscription(topic_id,
-                                         send_old_messages,
-                                         _cls) as subscription_id:
-            async for message in self.subscribe(subscription_id, _cls):
-                yield message
+    async def subscribe_topic(self, topic_id: str, _cls: Type[T], *,
+                              send_old_messages: bool=True) -> AsyncIterator[T]:
+        async with self.tmp_subscription(topic_id, _cls,
+                                         send_old_messages=send_old_messages) as subscription_id:
+            async with aclosing(cast(AsyncResource,
+                                     self.subscribe(subscription_id, _cls))) as aiter:
+                async for message in cast(AsyncIterable[T], aiter):
+                    yield message
 
     async def aclose(self) -> None:
         topics = list(self.topics.values())

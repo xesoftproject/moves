@@ -1,39 +1,49 @@
-import functools
-from typing import Callable, Awaitable, Any, TypeVar, AsyncIterator, AsyncIterable, Tuple, List
+from functools import wraps
+from typing import Any
+from typing import AsyncIterable
+from typing import AsyncIterator
+from typing import Awaitable
+from typing import Callable
+from typing import List
+from typing import Tuple
+from typing import TypeVar
+from typing import cast
 
-import trio
+from async_generator import aclosing
+from trio import run
+from trio.abc import AsyncResource
+
+
+_ = Any
 
 
 def trio_test(afun: Callable[..., Awaitable[None]]) -> Callable[..., None]:
-    @functools.wraps(afun)
+    @wraps(afun)
     def wrapper(*args: Any, **kwargs: Any) -> None:
-        trio.run(afun, *args, **kwargs)
+        run(afun, *args, **kwargs)
     return wrapper
 
 
 T = TypeVar('T')
 
 
-async def anext(aitor: AsyncIterator[T]) -> T:
-    return await aitor.__anext__()
+async def anext(acloseable: AsyncIterable[T]) -> T:
+    async with aclosing(cast(AsyncResource, acloseable)) as aiter:
+        aitor = cast(AsyncIterable[T], aiter).__aiter__()
+        return await aitor.__anext__()
 
 
-async def aenumerate(aiter: AsyncIterable[T]) -> AsyncIterable[Tuple[int, T]]:
+async def aenumerate(aiter: AsyncIterable[T]) -> AsyncIterator[Tuple[int, T]]:
     i = 0
     async for e in aiter:
         yield i, e
         i += 1
 
 
-async def atake(n: int, aiter: AsyncIterable[T]) -> List[T]:
-    aitor = aiter.__aiter__()
-    acc: List[T] = []
-    for _ in range(n):
-        acc.append(await anext(aitor))
-    return acc
-
-def iife(afun: Callable[[], T]) -> T:
-    return afun()
-
-async def iiafe(afun: Callable[[], Awaitable[T]]) -> T:
-    return await afun()
+async def atake(n: int, acloseable: AsyncIterable[T]) -> List[T]:
+    async with aclosing(cast(AsyncResource, acloseable)) as aiter:
+        aitor = cast(AsyncIterable[T], aiter).__aiter__()
+        acc: List[T] = []
+        for _ in range(n):
+            acc.append(await aitor.__anext__())
+        return acc

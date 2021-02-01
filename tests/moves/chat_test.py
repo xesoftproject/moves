@@ -22,7 +22,8 @@ class ChatTest(TestCase):
 
         async def consumer(app: QuartTrio) -> None:
             client = app.test_client()
-            async with client.websocket('/chats', headers={'Origin': 'http://localhost:8080'}) as ws:
+            async with client.websocket('/chats',
+                                        headers={'Origin': 'http://localhost:8080'}) as ws:
                 acc.append(await ws.receive())
                 acc.append(await ws.receive())
 
@@ -50,7 +51,8 @@ class ChatTest(TestCase):
         app = await mk_app()
         client = app.test_client()  # only one client -> act as the browser?
         await client.post('/chat/c')  # create a chat
-        async with client.websocket('/chat/c', headers={'Origin': 'http://localhost:8080'}) as ws:
+        async with client.websocket('/chat/c',
+                                    headers={'Origin': 'http://localhost:8080'}) as ws:
             async with open_nursery() as nursery:
                 nursery.start_soon(producer, ws)
                 nursery.start_soon(consumer, ws)

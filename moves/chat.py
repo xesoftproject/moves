@@ -26,7 +26,7 @@ async def mk_app() -> QuartTrio:
 
     broker = Broker()
 
-    await broker.add_topic(chats_topic_id, str)
+    broker.add_topic(chats_topic_id, str)
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
                                # allow_origin='*',
@@ -48,7 +48,7 @@ async def mk_app() -> QuartTrio:
         'create a new chat'
 
         try:
-            await broker.add_topic(chat_id, ChatMessage)
+            broker.add_topic(chat_id, ChatMessage)
         except KeyError:  # already present
             return chat_id
 

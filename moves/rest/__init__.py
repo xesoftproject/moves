@@ -30,8 +30,8 @@ async def parent() -> None:
 
     # 2 topics (in+out) - the needed subscription will be created by each task
     broker = Broker()
-    await broker.add_topic(INPUT_TOPIC, InputQueueElement)
-    await broker.add_topic(OUTPUT_TOPIC, OutputQueueElement)
+    broker.add_topic(INPUT_TOPIC, InputQueueElement)
+    broker.add_topic(OUTPUT_TOPIC, OutputQueueElement)
 
     try:
         async with open_nursery() as nursery:
@@ -44,8 +44,8 @@ async def parent() -> None:
             # input and output from/to cpu
             nursery.start_soon(cpu, broker)
     finally:
-        await broker.remove_topic(INPUT_TOPIC)
-        await broker.remove_topic(OUTPUT_TOPIC)
+        broker.remove_topic(INPUT_TOPIC)
+        broker.remove_topic(OUTPUT_TOPIC)
         await broker.aclose()
 
 

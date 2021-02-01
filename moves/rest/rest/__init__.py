@@ -32,7 +32,7 @@ async def rest(broker: Broker) -> None:
                                   True,
                                   OutputQueueElement)
 
-    await broker.add_topic(topic_games_id, str)
+    broker.add_topic(topic_games_id, str)
 
     config = hypercorn.config.Config()
     config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
