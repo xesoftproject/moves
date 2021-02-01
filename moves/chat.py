@@ -1,6 +1,5 @@
-from dataclasses import dataclass, asdict
 from json import loads, dumps
-from typing import cast
+from typing import cast, TypedDict
 
 from hypercorn.config import Config
 from hypercorn.trio import serve
@@ -14,17 +13,9 @@ from .logs import setup_logs
 from .triopubsub import Broker
 
 
-@dataclass()
-class ChatMessage:
+class ChatMessage(TypedDict):
     from_: str
     body: str
-
-    @staticmethod
-    def loads(data: str) -> 'ChatMessage':
-        return ChatMessage(**loads(data))
-
-    def dumps(self) -> str:
-        return dumps(asdict(self))
 
 
 async def mk_app() -> QuartTrio:
@@ -72,13 +63,13 @@ async def mk_app() -> QuartTrio:
             async def send_messages(chat_id: str) -> None:
                 while True:
                     message = await websocket.receive()
-                    await broker.send(ChatMessage.loads(message), chat_id)
+                    await broker.send(loads(message), chat_id)
 
             async def receive_messages(chat_id: str) -> None:
                 async for message in broker.subscribe_topic(chat_id,
                                                             True,
                                                             ChatMessage):
-                    await websocket.send(message.dumps())
+                    await websocket.send(dumps(message))
 
             await websocket.accept()
             nursery.start_soon(send_messages, chat_id)
