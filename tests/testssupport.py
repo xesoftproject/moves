@@ -31,3 +31,9 @@ async def atake(n: int, aiter: AsyncIterable[T]) -> List[T]:
     for _ in range(n):
         acc.append(await anext(aitor))
     return acc
+
+def iife(afun: Callable[[], T]) -> T:
+    return afun()
+
+async def iiafe(afun: Callable[[], Awaitable[T]]) -> T:
+    return await afun()

@@ -29,7 +29,8 @@ async def mk_app() -> QuartTrio:
     await broker.add_topic(chats_topic_id, str)
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin='*',
+                               # allow_origin='*',
+                               allow_origin='http://localhost:8080',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
@@ -59,18 +60,15 @@ async def mk_app() -> QuartTrio:
     async def chat(chat_id: str) -> None:
         'join a chat'
 
+        async def send_messages(chat_id: str) -> None:
+            message = await websocket.receive()
+            await broker.send(loads(message), chat_id)
+
+        async def receive_messages(chat_id: str) -> None:
+            async for message in broker.subscribe_topic(chat_id, True, ChatMessage):
+                await websocket.send(dumps(message))
+
         async with open_nursery() as nursery:
-            async def send_messages(chat_id: str) -> None:
-                while True:
-                    message = await websocket.receive()
-                    await broker.send(loads(message), chat_id)
-
-            async def receive_messages(chat_id: str) -> None:
-                async for message in broker.subscribe_topic(chat_id,
-                                                            True,
-                                                            ChatMessage):
-                    await websocket.send(dumps(message))
-
             await websocket.accept()
             nursery.start_soon(send_messages, chat_id)
             nursery.start_soon(receive_messages, chat_id)

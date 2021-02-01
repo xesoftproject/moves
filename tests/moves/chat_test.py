@@ -22,7 +22,7 @@ class ChatTest(TestCase):
 
         async def consumer(app: QuartTrio) -> None:
             client = app.test_client()
-            async with client.websocket('/chats', headers={'Origin': '*'}) as ws:
+            async with client.websocket('/chats', headers={'Origin': 'http://localhost:8080'}) as ws:
                 acc.append(await ws.receive())
                 acc.append(await ws.receive())
 
@@ -50,7 +50,7 @@ class ChatTest(TestCase):
         app = await mk_app()
         client = app.test_client()  # only one client -> act as the browser?
         await client.post('/chat/c')  # create a chat
-        async with client.websocket('/chat/c', headers={'Origin': '*'}) as ws:
+        async with client.websocket('/chat/c', headers={'Origin': 'http://localhost:8080'}) as ws:
             async with open_nursery() as nursery:
                 nursery.start_soon(producer, ws)
                 nursery.start_soon(consumer, ws)
@@ -58,4 +58,52 @@ class ChatTest(TestCase):
         self.assertListEqual(['{"from_": "client", "body": "foo"}',
                               '{"from_": "client", "body": "bar"}',
                               '{"from_": "client", "body": "baz"}'],
+                             acc)
+
+    @trio_test
+    async def test_chat_websocket_reload(self) -> None:
+        app = await mk_app()
+
+        async def init() -> None:
+            client = app.test_client()
+
+            # create a chat
+            await client.post('/chat/c')
+
+            # send a bunch of messages
+            async with client.websocket('/chat/c',
+                                        headers={'Origin': 'http://localhost:8080'}) as ws:
+                await ws.send('{"from_":"client","body":"foo"}')
+                await ws.receive()
+                await ws.send('{"from_":"client","body":"bar"}')
+                await ws.receive()
+                await ws.send('{"from_":"client","body":"baz"}')
+                await ws.receive()
+        await init()
+
+        # re-load chat page
+        async def producer(ws: TestWebsocketConnection) -> None:
+            await ws.send('{"from_":"client","body":"qux"}')
+            await ws.send('{"from_":"client","body":"quux"}')
+
+        acc: List[str] = []
+
+        async def consumer(ws: TestWebsocketConnection) -> None:
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
+
+        async with app.test_client().websocket('/chat/c',
+                                               headers={'Origin': 'http://localhost:8080'}) as ws:
+            async with open_nursery() as nursery:
+                nursery.start_soon(producer, ws)
+                nursery.start_soon(consumer, ws)
+
+        self.assertListEqual(['{"from_": "client", "body": "foo"}',
+                              '{"from_": "client", "body": "bar"}',
+                              '{"from_": "client", "body": "baz"}',
+                              '{"from_": "client", "body": "qux"}',
+                              '{"from_": "client", "body": "quux"}'],
                              acc)
