@@ -44,7 +44,8 @@ async def mk_app() -> QuartTrio:
 
         await websocket.accept()
 
-        async with aclosing(broker.subscribe_topic(chats_topic_id, str)) as chat_ids:
+        async with aclosing(broker.subscribe_topic(chats_topic_id,
+                                                   str)) as chat_ids:  # type: ignore
             async for chat_id in chat_ids:
                 await websocket.send(chat_id)
 
@@ -71,7 +72,8 @@ async def mk_app() -> QuartTrio:
                 await broker.send(loads(message), chat_id)
 
         async def send_messages(chat_id: str) -> None:
-            async with aclosing(broker.subscribe_topic(chat_id, ChatMessage)) as messages:
+            async with aclosing(broker.subscribe_topic(chat_id,
+                                                       ChatMessage)) as messages:  # type: ignore
                 async for message in messages:
                     await websocket.send(dumps(message))
 
