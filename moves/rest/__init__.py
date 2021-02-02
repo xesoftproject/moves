@@ -12,6 +12,7 @@ from .rest import rest
 from .types import InputQueueElement, OutputQueueElement
 
 
+setup_logs(__name__)
 LOGS = Logger(__name__)
 
 
@@ -50,8 +51,6 @@ async def parent() -> None:
 
 
 def main() -> None:
-    setup_logs(__name__)
-
     if running_on_ec2():
         from trio_asyncio import run as trio_asyncio_run
         trio_asyncio_run(parent)

@@ -1,7 +1,10 @@
-from json import loads, dumps
-from typing import cast, TypedDict
-from async_generator import aclosing
+from json import dumps
+from json import loads
+from logging import getLogger
+from typing import TypedDict
+from typing import cast
 
+from async_generator import aclosing
 from hypercorn.config import Config
 from hypercorn.trio import serve
 from quart import websocket
@@ -15,6 +18,10 @@ from .configurations import CHAT_PORT
 from .configurations import KEYFILE
 from .logs import setup_logs
 from .triopubsub import Broker
+
+
+setup_logs(__name__)
+LOGS = getLogger(__name__)
 
 
 class ChatMessage(TypedDict):
@@ -97,6 +104,4 @@ async def chat() -> None:
 
 
 def main() -> None:
-    setup_logs(__name__)
-
     run(chat)

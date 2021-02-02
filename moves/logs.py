@@ -1,8 +1,11 @@
-import logging.config
-import logging.handlers
-import os
+from logging import INFO
+from logging import basicConfig
+from logging.config import dictConfig
+from logging.handlers import TimedRotatingFileHandler
+from os import makedirs
+from os.path import join
 
-from . import configurations
+from .configurations import running_on_ec2
 
 
 def _fqcn(cls: type) -> str:
@@ -12,21 +15,21 @@ def _fqcn(cls: type) -> str:
 LOGS_ROOT = 'logs'
 
 
-def setup_logs(filename: str) -> None:
-    if configurations.running_on_ec2():
+def setup_logs(filename: str, running_on_ec2: bool=running_on_ec2()) -> None:
+    if running_on_ec2:
         # write logs on file
 
         # ensure the directory exists
-        os.makedirs(LOGS_ROOT, exist_ok=True)
+        makedirs(LOGS_ROOT, exist_ok=True)
 
-        logging.config.dictConfig({
+        dictConfig({
             'version': 1,
             'handlers': {
                 'wsgi': {
-                    'class': _fqcn(logging.handlers.TimedRotatingFileHandler),
-                    'filename': f'{LOGS_ROOT}/{filename}',
+                    'class': _fqcn(TimedRotatingFileHandler),
+                    'filename': join(LOGS_ROOT, filename),
                     'when': 'midnight',
-                    'backupCount': 1
+                    'backupCount': 0
                 }
             },
             'root': {
@@ -35,4 +38,4 @@ def setup_logs(filename: str) -> None:
             }
         })
     else:
-        logging.basicConfig(level=logging.INFO)
+        basicConfig(level=INFO)
