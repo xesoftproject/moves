@@ -29,6 +29,9 @@ class Subscription(Generic[T], AsyncResource):
     async def send(self, message: T) -> None:
         return await self.s.send(message)
 
+    def _send_nowait(self, message: T) -> None:
+        return self.s.send_nowait(message)
+
     async def subscribe(self) -> AsyncIterator[T]:
         async with self.r.clone() as r:
             async for message in r:
@@ -56,7 +59,7 @@ class Topic(Generic[T], AsyncResource):
             messages = list(self.messages)
             if messages:
                 for message in messages:
-                    await subscription.send(message)
+                    subscription._send_nowait(message)
             else:
                 await sleep(0)
         else:

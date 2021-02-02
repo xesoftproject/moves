@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Dict, List
 from unittest import TestCase
-from unittest import skip
 
 from trio import open_nursery
 
@@ -158,21 +157,18 @@ class TrioPubSubTest(TestCase):
         acc: List[str] = []
 
         broker = Broker()
+        broker.add_topic('topic', str)
         try:
-            broker.add_topic('topic', str)
-            try:
-                await broker.send('old1', 'topic')
-                await broker.send('old2', 'topic')
-                await broker.send('old3', 'topic')
+            await broker.send('old1', 'topic')
+            await broker.send('old2', 'topic')
+            await broker.send('old3', 'topic')
 
-                async with open_nursery() as nursery:
-                    nursery.start_soon(producer, broker)
-                    nursery.start_soon(consumer, broker, acc)
+            async with open_nursery() as nursery:
+                nursery.start_soon(producer, broker)
+                nursery.start_soon(consumer, broker, acc)
 
-            finally:
-                await broker.remove_topic('topic')
         finally:
-            await broker.aclose()
+            await broker.remove_topic('topic')
 
         self.assertListEqual(['old1', 'old2', 'old3', 'new1', 'new2'],
                              acc)
