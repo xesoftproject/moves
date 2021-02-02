@@ -44,12 +44,12 @@ class TestChat(TestCase):
             await ws.send('{"from_":"client","body":"bar"}')
             await ws.send('{"from_":"client","body":"baz"}')
 
-        acc: List[str] = []
+        async def consumer(ws: TestWebsocketConnection, acc: List[str]) -> None:
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
+            acc.append(await ws.receive())
 
-        async def consumer(ws: TestWebsocketConnection) -> None:
-            acc.append(await ws.receive())
-            acc.append(await ws.receive())
-            acc.append(await ws.receive())
+        acc: List[str] = []
 
         app = await mk_app()
         client = app.test_client()  # only one client -> act as the browser?
@@ -58,7 +58,7 @@ class TestChat(TestCase):
                                     headers={'Origin': 'http://localhost:8080'}) as ws:
             async with open_nursery() as nursery:
                 nursery.start_soon(producer, ws)
-                nursery.start_soon(consumer, ws)
+                nursery.start_soon(consumer, ws, acc)
 
         self.assertListEqual(['{"from_": "client", "body": "foo"}',
                               '{"from_": "client", "body": "bar"}',

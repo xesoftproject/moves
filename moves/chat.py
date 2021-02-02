@@ -1,14 +1,18 @@
 from json import loads, dumps
 from typing import cast, TypedDict
+from async_generator import aclosing
 
 from hypercorn.config import Config
 from hypercorn.trio import serve
 from quart import websocket
 from quart_cors import cors
 from quart_trio import QuartTrio
-from trio import run, open_nursery, sleep
+from trio import open_nursery
+from trio import run
 
-from .configurations import CHAT_PORT, CERTFILE, KEYFILE
+from .configurations import CERTFILE
+from .configurations import CHAT_PORT
+from .configurations import KEYFILE
 from .logs import setup_logs
 from .triopubsub import Broker
 
@@ -40,8 +44,9 @@ async def mk_app() -> QuartTrio:
 
         await websocket.accept()
 
-        async for chat_id in broker.subscribe_topic(chats_topic_id, str):
-            await websocket.send(chat_id)
+        async with aclosing(broker.subscribe_topic(chats_topic_id, str)) as chat_ids:
+            async for chat_id in chat_ids:
+                await websocket.send(chat_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
     async def create_chat(chat_id: str) -> str:
@@ -60,17 +65,15 @@ async def mk_app() -> QuartTrio:
     async def chat(chat_id: str) -> None:
         'join a chat'
 
-        async def send_messages(chat_id: str) -> None:
-            message = await websocket.receive()
-            await broker.send(loads(message), chat_id)
-
         async def receive_messages(chat_id: str) -> None:
-            await sleep(0)
-            await sleep(0)
-            await sleep(0)
-            await sleep(0)
-            async for message in broker.subscribe_topic(chat_id, ChatMessage):
-                await websocket.send(dumps(message))
+            while True:
+                message = await websocket.receive()
+                await broker.send(loads(message), chat_id)
+
+        async def send_messages(chat_id: str) -> None:
+            async with aclosing(broker.subscribe_topic(chat_id, ChatMessage)) as messages:
+                async for message in messages:
+                    await websocket.send(dumps(message))
 
         async with open_nursery() as nursery:
             await websocket.accept()

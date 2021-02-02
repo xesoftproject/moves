@@ -1,4 +1,5 @@
 from functools import wraps
+from sys import gettrace
 from typing import Any
 from typing import AsyncIterable
 from typing import AsyncIterator
@@ -54,8 +55,10 @@ async def atake(n: int, acloseable: AsyncIterable[T]) -> List[T]:
 
 
 class timeout:
-    def __init__(self, seconds: int) -> None:
+    def __init__(self, seconds: int=5) -> None:
         self.seconds = seconds
+        if gettrace() is not None:
+            self.seconds *= 100  # give me more time in debug
 
     def __call__(self, afun: _AsyncTestMethod) -> _AsyncTestMethod:
         @wraps(afun)
