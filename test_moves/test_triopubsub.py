@@ -1,19 +1,20 @@
-from __future__ import annotations
-
-from typing import Dict, List
+from typing import Dict
+from typing import List
 from unittest import TestCase
 
 from trio import open_nursery
 
 from moves.triopubsub import Broker
 
-from ..testssupport import anext
-from ..testssupport import atake
-from ..testssupport import trio_test
+from ._support_for_tests import anext
+from ._support_for_tests import atake
+from ._support_for_tests import timeout
+from ._support_for_tests import trio_test
 
 
-class TrioPubSubTest(TestCase):
+class TestTriopubsub(TestCase):
     @trio_test
+    @timeout(5)
     async def test_memory_true(self) -> None:
         broker = Broker()
         try:
@@ -28,6 +29,7 @@ class TrioPubSubTest(TestCase):
             await broker.aclose()
 
     @trio_test
+    @timeout(5)
     async def test_subscriptions_share_messages(self) -> None:
         broker = Broker()
         try:
@@ -47,6 +49,7 @@ class TrioPubSubTest(TestCase):
             await broker.aclose()
 
     @trio_test
+    @timeout(5)
     async def test_subscribe_in_nursery(self) -> None:
         broker = Broker()
         try:
@@ -72,6 +75,7 @@ class TrioPubSubTest(TestCase):
             await broker.aclose()
 
     @trio_test
+    @timeout(5)
     async def test_order(self) -> None:
         ms1 = list('ABCDE')
         ms2 = list('12345')
@@ -110,6 +114,7 @@ class TrioPubSubTest(TestCase):
         self.assertListEqual(list(ms1 + ms2), acc)
 
     @trio_test
+    @timeout(5)
     async def test_add_remove(self) -> None:
         broker = Broker()
         try:
@@ -133,6 +138,7 @@ class TrioPubSubTest(TestCase):
             await broker.aclose()
 
     @trio_test
+    @timeout(5)
     async def test_add_keyerror(self) -> None:
         broker = Broker()
         broker.add_topic('topic', str)
@@ -145,6 +151,7 @@ class TrioPubSubTest(TestCase):
             await broker.add_subscription('topic', 'subscription',  str)
 
     @trio_test
+    @timeout(5)
     async def test_sub_wait(self) -> None:
         async def producer(broker: Broker) -> None:
             await broker.send('new1', 'topic')
@@ -174,6 +181,7 @@ class TrioPubSubTest(TestCase):
                              acc)
 
     @trio_test
+    @timeout(5)
     async def test_aclose(self) -> None:
         broker = Broker()
         try:
@@ -185,6 +193,7 @@ class TrioPubSubTest(TestCase):
         self.assertDictEqual({}, broker.topics)
 
     @trio_test
+    @timeout(5)
     async def test_send_old_messages(self) -> None:
         b = Broker()
         try:

@@ -10,14 +10,18 @@ from typing import TypeVar
 from typing import cast
 
 from async_generator import aclosing
+from trio import move_on_after
 from trio import run
 from trio.abc import AsyncResource
 
 
 _ = Any
 
+_AsyncTestMethod = Callable[..., Awaitable[None]]
+_TestMethod = Callable[..., None]
 
-def trio_test(afun: Callable[..., Awaitable[None]]) -> Callable[..., None]:
+
+def trio_test(afun: _AsyncTestMethod) -> _TestMethod:
     @wraps(afun)
     def wrapper(*args: Any, **kwargs: Any) -> None:
         run(afun, *args, **kwargs)
@@ -47,3 +51,15 @@ async def atake(n: int, acloseable: AsyncIterable[T]) -> List[T]:
         for _ in range(n):
             acc.append(await aitor.__anext__())
         return acc
+
+
+class timeout:
+    def __init__(self, seconds: int) -> None:
+        self.seconds = seconds
+
+    def __call__(self, afun: _AsyncTestMethod) -> _AsyncTestMethod:
+        @wraps(afun)
+        async def wrapper(*args: Any, **kwargs: Any) -> None:
+            with move_on_after(self.seconds):
+                return await afun(*args, **kwargs)
+        return wrapper

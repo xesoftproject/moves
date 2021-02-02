@@ -7,11 +7,13 @@ from trio import open_nursery
 
 from moves.chat import mk_app
 
-from ..testssupport import trio_test
+from ._support_for_tests import timeout
+from ._support_for_tests import trio_test
 
 
-class ChatTest(TestCase):
+class TestChat(TestCase):
     @trio_test
+    @timeout(5)
     async def test_chats_websocket(self) -> None:
         async def producer(app: QuartTrio) -> None:
             client = app.test_client()
@@ -35,6 +37,7 @@ class ChatTest(TestCase):
         self.assertListEqual(['chat1', 'chat2'], acc)
 
     @trio_test
+    @timeout(5)
     async def test_chat_websocket_alone(self) -> None:
         async def producer(ws: TestWebsocketConnection) -> None:
             await ws.send('{"from_":"client","body":"foo"}')
@@ -63,6 +66,7 @@ class ChatTest(TestCase):
                              acc)
 
     @trio_test
+    @timeout(5)
     async def test_chat_websocket_reload(self) -> None:
         app = await mk_app()
 
@@ -76,11 +80,8 @@ class ChatTest(TestCase):
             async with client.websocket('/chat/c',
                                         headers={'Origin': 'http://localhost:8080'}) as ws:
                 await ws.send('{"from_":"client","body":"foo"}')
-                await ws.receive()
                 await ws.send('{"from_":"client","body":"bar"}')
-                await ws.receive()
                 await ws.send('{"from_":"client","body":"baz"}')
-                await ws.receive()
         await init()
 
         # re-load chat page
