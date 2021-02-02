@@ -8,6 +8,7 @@ from . import constants
 from . import types
 from .. import configurations
 from .. import triopubsub
+from async_generator import aclosing
 
 
 LOGS = logging.getLogger(__name__)
@@ -71,13 +72,6 @@ async def handle(engine: UnionEngine,
 async def cpu(broker: triopubsub.Broker) -> None:
     '"passive" element: wait for inputs and handle them'
 
-    # pub/sub "infrastructure"
-    subscription_id = __name__
-
-    await broker.add_subscription(constants.OUTPUT_TOPIC,
-                                  subscription_id,
-                                  types.OutputQueueElement)
-
     # IA
     engine: UnionEngine
     try:
@@ -91,12 +85,13 @@ async def cpu(broker: triopubsub.Broker) -> None:
         LOGS.error('configurations.STOCKFISH: %s', configurations.STOCKFISH)
         raise
 
-    # main loop
-    async for output_element in broker.subscribe(subscription_id,
-                                                 types.OutputQueueElement):
-        LOGS.info('output_element: %s', output_element)
+    async with aclosing(broker.subscribe_topic(constants.OUTPUT_TOPIC,
+                                               types.OutputQueueElement)) as output_elements:  # type: ignore
+        # main loop
+        async for output_element in output_elements:
+            LOGS.info('output_element: %s', output_element)
 
-        async for input_element in handle(engine, output_element):
-            LOGS.info('input_element: %s', input_element)
+            async for input_element in handle(engine, output_element):
+                LOGS.info('input_element: %s', input_element)
 
-            await broker.send(input_element, constants.INPUT_TOPIC)
+                await broker.send(input_element, constants.INPUT_TOPIC)

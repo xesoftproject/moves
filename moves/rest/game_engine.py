@@ -2,6 +2,7 @@ from logging import getLogger
 from typing import Iterator, Dict
 from uuid import uuid4
 
+from async_generator import aclosing
 from chess import Board
 
 from ..triopubsub import Broker
@@ -70,25 +71,16 @@ def handle(games: Dict[str, GameUniverse],
 async def game_engine(broker: Broker) -> None:
     '"passive" element: wait for inputs and handle them'
 
-    # pub/sub "infrastructure"
-    subscription_id = __name__
-
-    await broker.add_subscription(INPUT_TOPIC,
-                                  subscription_id,
-                                  InputQueueElement)
-
-    try:
+    async with aclosing(broker.subscribe_topic(INPUT_TOPIC,
+                                               InputQueueElement)) as input_elements:  # type: ignore
         # mutable multiverse
         games: Dict[str, GameUniverse] = {}
 
         # main loop
-        async for input_element in broker.subscribe(subscription_id,
-                                                    InputQueueElement):
+        async for input_element in input_elements:
             LOGS.info('input_element: %s', input_element)
 
             for output_element in handle(games, input_element):
                 LOGS.info('output_element: %s', output_element)
 
                 await broker.send(output_element, OUTPUT_TOPIC)
-    finally:
-        broker.remove_subscription(INPUT_TOPIC, subscription_id)

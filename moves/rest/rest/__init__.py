@@ -2,6 +2,7 @@ from json import dumps
 from logging import getLogger
 from typing import cast
 
+from async_generator import aclosing
 import hypercorn.config
 import hypercorn.trio
 import quart
@@ -9,9 +10,9 @@ import quart_cors
 import quart_trio
 import trio
 
-from ..constants import INPUT_TOPIC, OUTPUT_TOPIC
 from ... import configurations
 from ...triopubsub import Topic, Subscription, Broker
+from ..constants import INPUT_TOPIC, OUTPUT_TOPIC
 from ..types import OutputQueueElement, Result
 from .types import GamesOutput, StartNewGameInput, RegisterOutput, UpdateInput
 
@@ -113,7 +114,8 @@ async def rest(broker: Broker) -> None:
     async def register(game_id: str) -> None:
         LOGS.info('register(%s)', game_id)
 
-        async for output_element in broker.subscribe(subscription_id,
+        async for output_element in broker.subscribe(OUTPUT_TOPIC,
+                                                     subscription_id,
                                                      OutputQueueElement):
             LOGS.info('output_element: %s', output_element)
 
@@ -135,4 +137,4 @@ async def rest(broker: Broker) -> None:
 
             await quart.websocket.send(games_output.json())
 
-    await hypercorn.trio.serve(app, config) # type: ignore
+    await hypercorn.trio.serve(app, config)  # type: ignore
