@@ -80,6 +80,23 @@ async def web() -> None:
         quart.session.pop('ERROR', None)
         return quart.Response(body)
 
+    @app.before_request
+    async def before_request() -> None:
+        app.logger.info('[request: %s on %s',
+                        quart.request.method,
+                        quart.request.url)
+        app.logger.info(' headers: {')
+        for k, v in dict(quart.request.headers).items():
+            app.logger.info('     %s: %s', k, v)
+        app.logger.info(' }')
+
+        app.logger.info(' data: %s]',
+                        (await quart.request.get_data()).decode('utf-8'))
+
+    @app.teardown_request
+    def teardown_request(exception: typing.Optional[BaseException]) -> None:
+        app.logger.info('[exception: %s]', exception)
+
     await hypercorn.trio.serve(app, config)  # type: ignore
 
 
