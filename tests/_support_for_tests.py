@@ -11,10 +11,10 @@ from typing import TypeVar
 from typing import cast
 
 from async_generator import aclosing
-from trio import move_on_after
+from trio import fail_after
 from trio import run
+from trio import sleep
 from trio.abc import AsyncResource
-
 
 _ = Any
 
@@ -49,6 +49,8 @@ async def atake(n: int, acloseable: AsyncIterable[T]) -> List[T]:
     async with aclosing(cast(AsyncResource, acloseable)) as aiter:
         aitor = cast(AsyncIterable[T], aiter).__aiter__()
         acc: List[T] = []
+        if n <= 0:
+            await sleep(0)
         for _ in range(n):
             acc.append(await aitor.__anext__())
         return acc
@@ -63,6 +65,6 @@ class timeout:
     def __call__(self, afun: _AsyncTestMethod) -> _AsyncTestMethod:
         @wraps(afun)
         async def wrapper(*args: Any, **kwargs: Any) -> None:
-            with move_on_after(self.seconds):
+            with fail_after(self.seconds):
                 return await afun(*args, **kwargs)
         return wrapper

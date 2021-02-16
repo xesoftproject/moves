@@ -1,16 +1,18 @@
 from logging import Logger
 
-from trio import run, open_nursery
+from trio import open_nursery
+from trio import run
 
 from ..configurations import running_on_ec2
 from ..logs import setup_logs
 from ..triopubsub import Broker
-from .constants import INPUT_TOPIC, OUTPUT_TOPIC
+from .constants import INPUT_TOPIC
+from .constants import OUTPUT_TOPIC
 from .cpu import cpu
 from .game_engine import game_engine
 from .rest import rest
-from .types import InputQueueElement, OutputQueueElement
-
+from .types import InputQueueElement
+from .types import OutputQueueElement
 
 setup_logs(__name__)
 LOGS = Logger(__name__)
