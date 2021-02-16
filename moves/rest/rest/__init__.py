@@ -1,30 +1,32 @@
-from json import dumps
 from logging import getLogger
 from typing import cast
 
 from async_generator import aclosing
-import hypercorn.config
-import hypercorn.trio
-import quart
-import quart_cors
-import quart_trio
-import trio
+from hypercorn.config import Config
+from hypercorn.trio import serve
+from quart import request
+from quart import websocket
+from quart_cors import cors
+from quart_trio import QuartTrio
+from trio import open_nursery
 
 from ... import configurations
-from ...triopubsub import Topic, Subscription, Broker
-from ..constants import INPUT_TOPIC, OUTPUT_TOPIC
-from ..types import OutputQueueElement, Result
-from .types import GamesOutput, StartNewGameInput, RegisterOutput, UpdateInput
+from ...triopubsub import Broker
+from ..constants import INPUT_TOPIC
+from ..constants import OUTPUT_TOPIC
+from ..types import OutputQueueElement
+from ..types import Result
+from .types import GamesOutput
+from .types import RegisterOutput
+from .types import StartNewGameInput
+from .types import UpdateInput
 
 
 LOGS = getLogger(__name__)
 
 
-async def rest(broker: Broker) -> None:
-    'rest/ws server, expose the game engine to users'
-
+async def mk_app(broker: Broker) -> QuartTrio:
     # pub/sub "infrastructure"
-    # TODO: move to a topic per game?
     subscription_id = __name__
     topic_games_id = 'games'
 
@@ -34,22 +36,14 @@ async def rest(broker: Broker) -> None:
 
     broker.add_topic(topic_games_id, str)
 
-    config = hypercorn.config.Config()
-    config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
-    if configurations.CERTFILE:
-        config.certfile = configurations.CERTFILE
-    if configurations.KEYFILE:
-        config.keyfile = configurations.KEYFILE
-
-    app = cast(quart_trio.QuartTrio,
-               quart_cors.cors(quart_trio.QuartTrio(__name__),
-                               allow_origin='*',
+    app = cast(QuartTrio, cors(QuartTrio(__name__),
+                               allow_origin='http://localhost:8080',  # TODO
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
     @app.route('/start_new_game', methods=['POST'])
     async def start_new_game() -> str:
-        body = await quart.request.json
+        body = await request.json
         LOGS.info('start_new_game [body: %s]', body)
 
         start_new_game_input = StartNewGameInput(**body)
@@ -67,20 +61,21 @@ async def rest(broker: Broker) -> None:
         async def get_game_id() -> None:
             nonlocal game_id
 
-            async for game_id_message in broker.subscribe_topic(OUTPUT_TOPIC,
-                                                                OutputQueueElement,
-                                                                send_old_messages=False):
-                output_element = game_id_message
-                LOGS.info('output_element: %s', output_element)
-                if output_element.result != Result.GAME_CREATED:
-                    continue
-                game_id = output_element.game_universe.game_id
-                break
+            async with aclosing(broker.subscribe_topic(OUTPUT_TOPIC,
+                                                       OutputQueueElement,
+                                                       send_old_messages=False)) as game_id_messages:  # type: ignore
+                async for game_id_message in game_id_messages:
+                    output_element = game_id_message
+                    LOGS.info('output_element: %s', output_element)
+                    if output_element.result != Result.GAME_CREATED:
+                        continue
+                    game_id = output_element.game_universe.game_id
+                    break
 
         async def send_start_game() -> None:
             await broker.send(input_element, INPUT_TOPIC)
 
-        async with trio.open_nursery() as nursery:
+        async with open_nursery() as nursery:
             nursery.start_soon(get_game_id)
             nursery.start_soon(send_start_game)
 
@@ -97,7 +92,7 @@ async def rest(broker: Broker) -> None:
 
     @app.route('/update', methods=['POST'])
     async def update() -> str:            # supposedly called by transcribe
-        body = quart.request.json
+        body = request.json
         LOGS.info('update [body: {}]', body)
 
         update_input = UpdateInput(**body)
@@ -125,16 +120,30 @@ async def rest(broker: Broker) -> None:
             register_output = RegisterOutput.from_output_queue_element(
                 output_element)
 
-            await quart.websocket.send(register_output.json())
+            await websocket.send(register_output.json())
 
     @app.websocket('/games')
     async def games() -> None:
         LOGS.info('games()')
 
-        async for games_output in broker.subscribe_topic(topic_games_id,
-                                                         GamesOutput):
-            LOGS.info('games [games_output: %s]', games_output)
+        async with aclosing(broker.subscribe_topic(topic_games_id,
+                                                   GamesOutput)) as games_outputs:  # type: ignore
+            async for games_output in games_outputs:
+                LOGS.info('games [games_output: %s]', games_output)
 
-            await quart.websocket.send(games_output.json())
+                await websocket.send(games_output.json())
 
-    await hypercorn.trio.serve(app, config)  # type: ignore
+    return app
+
+
+async def rest(broker: Broker) -> None:
+    'rest/ws server, expose the game engine to users'
+
+    config = Config()
+    config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
+    if configurations.CERTFILE:
+        config.certfile = configurations.CERTFILE
+    if configurations.KEYFILE:
+        config.keyfile = configurations.KEYFILE
+
+    await serve(await mk_app(broker), config)  # type: ignore
