@@ -13,8 +13,6 @@ from quart_trio import QuartTrio
 from trio import open_nursery
 from trio import run
 
-from moves.configurations.aws import WEB_PORT
-
 from .configurations import CERTFILE
 from .configurations import CHAT_PORT
 from .configurations import HOSTNAME
