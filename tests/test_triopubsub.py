@@ -20,7 +20,7 @@ class TestTriopubsub(TestCase):
         try:
             broker.add_topic('t', str)
             try:
-                await broker.send('m', 't')
+                broker.send('m', 't')
                 self.assertEqual('m',
                                  await anext(broker.subscribe_topic('t', str)))
             finally:
@@ -34,12 +34,12 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             broker.add_topic('t', str)
-            await broker.add_subscription('t', 's1',  str)
-            await broker.add_subscription('t', 's2',  str)
+            broker.add_subscription('t', 's1',  str)
+            broker.add_subscription('t', 's2',  str)
 
-            await broker.send('m1', 't')
-            await broker.send('m2', 't')
-            await broker.send('m3', 't')
+            broker.send('m1', 't')
+            broker.send('m2', 't')
+            broker.send('m3', 't')
 
             self.assertListEqual(['m1', 'm2', 'm3'],
                                  await atake(3, broker.subscribe('t', 's1', str)))
@@ -54,8 +54,8 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             broker.add_topic('t', str)
-            await broker.add_subscription('t', 's1',  str)
-            await broker.add_subscription('t', 's2',  str)
+            broker.add_subscription('t', 's1',  str)
+            broker.add_subscription('t', 's2',  str)
 
             acc: Dict[str, str] = {}
             async with open_nursery() as nursery:
@@ -68,7 +68,7 @@ class TestTriopubsub(TestCase):
                 nursery.start_soon(get_m1)
                 nursery.start_soon(get_m2)
 
-                await broker.send('m', 't')
+                broker.send('m', 't')
 
             self.assertDictEqual({'s1': 'm', 's2': 'm'}, acc)
         finally:
@@ -82,7 +82,7 @@ class TestTriopubsub(TestCase):
 
         async def producer(broker: Broker, ms: List[str]) -> None:
             for m in ms:
-                await broker.send(m, 't')
+                broker.send(m, 't')
 
         async def consumer(broker: Broker,
                            ms1: List[str], ms2: List[str],
@@ -119,8 +119,8 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             topic = broker.add_topic('topic', str)
-            await broker.add_subscription('topic', 'subscription1',  str)
-            await broker.add_subscription('topic', 'subscription2',  str)
+            broker.add_subscription('topic', 'subscription1',  str)
+            broker.add_subscription('topic', 'subscription2',  str)
             self.assertTrue('topic' in broker.topics)
             self.assertTrue('subscription1' in topic.subscriptions)
             self.assertTrue('subscription2' in topic.subscriptions)
@@ -142,20 +142,20 @@ class TestTriopubsub(TestCase):
     async def test_add_keyerror(self) -> None:
         broker = Broker()
         broker.add_topic('topic', str)
-        await broker.add_subscription('topic', 'subscription',  str)
+        broker.add_subscription('topic', 'subscription',  str)
 
         with self.assertRaises(KeyError):
             broker.add_topic('topic', str)
 
         with self.assertRaises(KeyError):
-            await broker.add_subscription('topic', 'subscription',  str)
+            broker.add_subscription('topic', 'subscription',  str)
 
     @trio_test
     @timeout(5)
     async def test_sub_wait(self) -> None:
         async def producer(broker: Broker) -> None:
-            await broker.send('new1', 'topic')
-            await broker.send('new2', 'topic')
+            broker.send('new1', 'topic')
+            broker.send('new2', 'topic')
 
         async def consumer(broker: Broker, acc: List[str]) -> None:
             acc.extend(await atake(5,
@@ -166,9 +166,9 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         broker.add_topic('topic', str)
         try:
-            await broker.send('old1', 'topic')
-            await broker.send('old2', 'topic')
-            await broker.send('old3', 'topic')
+            broker.send('old1', 'topic')
+            broker.send('old2', 'topic')
+            broker.send('old3', 'topic')
 
             async with open_nursery() as nursery:
                 nursery.start_soon(producer, broker)
@@ -186,7 +186,7 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             broker.add_topic('foo', str)
-            await broker.send('msg', 'foo')
+            broker.send('msg', 'foo')
         finally:
             await broker.aclose()
 
@@ -199,19 +199,19 @@ class TestTriopubsub(TestCase):
         try:
             b.add_topic('t', str)
             try:
-                await b.send('m1', 't')
+                b.send('m1', 't')
 
-                s1 = await b.add_subscription('t', 's1', str,
+                s1 = b.add_subscription('t', 's1', str,
                                               send_old_messages=False)
                 try:
                     self.assertEqual(0, s1.s.statistics().current_buffer_used)
-                    await b.send('m2', 't')
+                    b.send('m2', 't')
                     self.assertEqual(1, s1.s.statistics().current_buffer_used)
                 finally:
                     await b.remove_subscription('t', 's1')
 
                 try:
-                    s2 = await b.add_subscription('t', 's2', str)
+                    s2 = b.add_subscription('t', 's2', str)
                     self.assertEqual(2, s2.s.statistics().current_buffer_used)
                 finally:
                     await b.remove_subscription('t', 's2')

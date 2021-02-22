@@ -65,7 +65,7 @@ async def mk_app() -> QuartTrio:
         except KeyError:  # already present
             return chat_id
 
-        await broker.send(chat_id, chats_topic_id)
+        broker.send(chat_id, chats_topic_id)
 
         return chat_id
 
@@ -76,7 +76,7 @@ async def mk_app() -> QuartTrio:
         async def receive_messages(chat_id: str) -> None:
             while True:
                 message = await websocket.receive()
-                await broker.send(loads(message), chat_id)
+                broker.send(loads(message), chat_id)
 
         async def send_messages(chat_id: str) -> None:
             async with aclosing(broker.subscribe_topic(chat_id,

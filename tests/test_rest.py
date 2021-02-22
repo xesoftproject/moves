@@ -41,7 +41,7 @@ async def run(n: int,
             if not outputs:
                 await sleep(0)
             for output in outputs:
-                await b.send(output, OUTPUT_TOPIC)
+                b.send(output, OUTPUT_TOPIC)
         nursery.start_soon(producer)
 
         async def consumer() -> None:
