@@ -15,10 +15,12 @@ from trio import run
 
 from .configurations import CERTFILE
 from .configurations import CHAT_PORT
+from .configurations import HOSTNAME
+from .configurations import HTTP
 from .configurations import KEYFILE
+from .configurations import WEB_PORT
 from .logs import setup_logs
 from .triopubsub import Broker
-
 
 setup_logs(__name__)
 LOGS = getLogger(__name__)
@@ -40,8 +42,7 @@ async def mk_app() -> QuartTrio:
     broker.add_topic(chats_topic_id, str)
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               # allow_origin='*',
-                               allow_origin='http://localhost:8080',
+                               allow_origin=f'{HTTP}://{HOSTNAME}:{WEB_PORT}',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 

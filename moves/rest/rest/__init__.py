@@ -10,7 +10,12 @@ from quart_cors import cors
 from quart_trio import QuartTrio
 from trio import open_nursery
 
-from ... import configurations
+from ...configurations import CERTFILE
+from ...configurations import HOSTNAME
+from ...configurations import HTTP
+from ...configurations import KEYFILE
+from ...configurations import REST_PORT
+from ...configurations import WEB_PORT
 from ...triopubsub import Broker
 from ..constants import INPUT_TOPIC
 from ..constants import OUTPUT_TOPIC
@@ -31,7 +36,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
     broker.add_topic(topic_games_id, str)
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin='http://localhost:8080',  # TODO
+                               allow_origin=f'{HTTP}://{HOSTNAME}:{WEB_PORT}',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
@@ -137,10 +142,10 @@ async def rest(broker: Broker) -> None:
     'rest/ws server, expose the game engine to users'
 
     config = Config()
-    config.bind = [f'0.0.0.0:{configurations.REST_PORT}']
-    if configurations.CERTFILE:
-        config.certfile = configurations.CERTFILE
-    if configurations.KEYFILE:
-        config.keyfile = configurations.KEYFILE
+    config.bind = [f'0.0.0.0:{REST_PORT}']
+    if CERTFILE:
+        config.certfile = CERTFILE
+    if KEYFILE:
+        config.keyfile = KEYFILE
 
     await serve(await mk_app(broker), config)  # type: ignore
