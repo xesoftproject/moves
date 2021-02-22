@@ -12,6 +12,7 @@ from chess.engine import Limit
 from chess.engine import SimpleEngine
 from chess.engine import UciProtocol
 from chess.engine import popen_uci
+from trio import BrokenResourceError
 from trio.to_thread import run_sync
 
 from ..configurations import STOCKFISH
@@ -106,7 +107,10 @@ async def cpu(broker: Broker) -> None:
         async for output_element in output_elements:
             LOGS.info('output_element: %s', output_element)
 
+            if output_element is None:
+                break
+
             async for input_element in handle(engine, output_element):
                 LOGS.info('input_element: %s', input_element)
 
-                await broker.send(input_element, INPUT_TOPIC)
+                broker.send(input_element, INPUT_TOPIC)

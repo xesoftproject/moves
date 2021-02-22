@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from math import inf
 from typing import List
+from typing import Optional
 from unittest import TestCase
 
 from async_generator import aclosing
@@ -9,7 +10,6 @@ from chess import Board
 from trio import BrokenResourceError
 from trio import open_memory_channel
 from trio import open_nursery
-from trio import sleep
 
 from moves.rest.constants import INPUT_TOPIC
 from moves.rest.constants import OUTPUT_TOPIC
@@ -28,7 +28,7 @@ from ._support_for_tests import trio_test
 
 
 async def run(n: int,
-              outputs: List[OutputQueueElement]) -> List[InputQueueElement]:
+              outputs: List[Optional[OutputQueueElement]]) -> List[InputQueueElement]:
     b = Broker()
     b.add_topic(INPUT_TOPIC, InputQueueElement)
     b.add_topic(OUTPUT_TOPIC, OutputQueueElement)
@@ -38,8 +38,6 @@ async def run(n: int,
         nursery.start_soon(cpu, b)
 
         async def producer() -> None:
-            if not outputs:
-                await sleep(0)
             for output in outputs:
                 b.send(output, OUTPUT_TOPIC)
         nursery.start_soon(producer)
@@ -62,7 +60,8 @@ class TestRest(TestCase):
     @timeout(5)
     async def test_cpu(self) -> None:
         outputs = [OutputQueueElement(result=Result.GAME_CREATED,
-                                      game_universe=GAME_UNIVERSE)]
+                                      game_universe=GAME_UNIVERSE),
+                   None]
         expected: List[InputQueueElement] = []
         actual: List[InputQueueElement] = await run(0, outputs)
         self.assertListEqual(expected, actual)
