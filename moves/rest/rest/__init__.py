@@ -35,8 +35,13 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
     broker.add_topic(topic_games_id, str)
 
+    allow_origin = (f'{HTTP}://{HOSTNAME}'
+                    if ((HTTP == 'http' and WEB_PORT == 80)
+                        or (HTTP == 'https' and WEB_PORT == 443))
+                    else f'{HTTP}://{HOSTNAME}')
+
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin=f'{HTTP}://{HOSTNAME}:{WEB_PORT}',
+                               allow_origin=allow_origin,
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 

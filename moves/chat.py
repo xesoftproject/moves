@@ -13,6 +13,8 @@ from quart_trio import QuartTrio
 from trio import open_nursery
 from trio import run
 
+from moves.configurations.aws import WEB_PORT
+
 from .configurations import CERTFILE
 from .configurations import CHAT_PORT
 from .configurations import HOSTNAME
@@ -41,8 +43,13 @@ async def mk_app() -> QuartTrio:
 
     broker.add_topic(chats_topic_id, str)
 
+    allow_origin = (f'{HTTP}://{HOSTNAME}'
+                    if ((HTTP == 'http' and WEB_PORT == 80)
+                        or (HTTP == 'https' and WEB_PORT == 443))
+                    else f'{HTTP}://{HOSTNAME}')
+
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin=f'{HTTP}://{HOSTNAME}:{WEB_PORT}',
+                               allow_origin=allow_origin,
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
