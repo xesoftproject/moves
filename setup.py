@@ -44,6 +44,7 @@ setuptools.setup(name='moves',
                      'trio-typing',
                      'hypercorn',
                      'quart-cors',
-                     'trio_asyncio'
+                     'trio_asyncio',
+                     'jsonlines'
                  ],
                  package_data={'moves': moves_package_data()})

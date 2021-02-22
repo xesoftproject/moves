@@ -20,6 +20,8 @@ from .configurations import HTTP
 from .configurations import KEYFILE
 from .configurations import WEB_PORT
 from .logs import setup_logs
+from .rest.storage import load_broker
+from .rest.storage import update_broker
 from .triopubsub import Broker
 
 setup_logs(__name__)
@@ -31,20 +33,18 @@ class ChatMessage(TypedDict):
     body: str
 
 
-async def mk_app() -> QuartTrio:
+async def mk_app(broker: Broker) -> QuartTrio:
     # each "chat room" is a topic. for each connection there is a subscription
     # + there is a "chats" topic - with just the list of the topic_ids
 
     chats_topic_id = '__chats'
-
-    broker = Broker()
 
     broker.add_topic(chats_topic_id, str)
 
     allow_origin = (f'{HTTP}://{HOSTNAME}'
                     if ((HTTP == 'http' and WEB_PORT == 80)
                         or (HTTP == 'https' and WEB_PORT == 443))
-                    else f'{HTTP}://{HOSTNAME}')
+                    else f'{HTTP}://{HOSTNAME}:{WEB_PORT}')
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
                                allow_origin=allow_origin,
@@ -106,7 +106,11 @@ async def chat() -> None:
     if KEYFILE:
         config.keyfile = KEYFILE
 
-    await serve(await mk_app(), config)  # type: ignore
+    broker = Broker()
+    load_broker(broker)
+    update_broker(broker)
+
+    serve(await mk_app(broker), config)  # type: ignore
 
 
 def main() -> None:
