@@ -1,14 +1,19 @@
 from logging import getLogger
-from typing import Iterator, Dict
+from typing import Dict, Optional
+from typing import Iterator
 from uuid import uuid4
 
 from async_generator import aclosing
 from chess import Board
 
 from ..triopubsub import Broker
-from .constants import INPUT_TOPIC, OUTPUT_TOPIC
-from .types import GameUniverse, InputQueueElement, OutputQueueElement, Command, Result
-
+from .constants import INPUT_TOPIC
+from .constants import OUTPUT_TOPIC
+from .types import Command
+from .types import GameUniverse
+from .types import InputQueueElement
+from .types import OutputQueueElement
+from .types import Result
 
 LOGS = getLogger(__name__)
 
@@ -80,7 +85,10 @@ async def game_engine(broker: Broker) -> None:
         async for input_element in input_elements:
             LOGS.info('input_element: %s', input_element)
 
+            if input_element is None:
+                break
+
             for output_element in handle(games, input_element):
                 LOGS.info('output_element: %s', output_element)
 
-                await broker.send(output_element, OUTPUT_TOPIC)
+                broker.send(output_element, OUTPUT_TOPIC)

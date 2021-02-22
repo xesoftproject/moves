@@ -12,7 +12,6 @@ from chess.engine import Limit
 from chess.engine import SimpleEngine
 from chess.engine import UciProtocol
 from chess.engine import popen_uci
-from trio import BrokenResourceError
 from trio.to_thread import run_sync
 
 from ..configurations import STOCKFISH

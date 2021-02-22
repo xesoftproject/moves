@@ -1,6 +1,8 @@
+from logging import CRITICAL
 from logging import DEBUG
 from logging import StreamHandler
 from logging import basicConfig
+from logging import getLogger
 from logging.handlers import TimedRotatingFileHandler
 from os import makedirs
 from os.path import join
@@ -36,6 +38,7 @@ def setup_logs(filename: str, running_on_ec2: bool=running_on_ec2()) -> None:
                                                        when='midnight')],
                     force=True)
     else:
-        basicConfig(level=DEBUG,
+        basicConfig(level=CRITICAL,
                     handlers=[StreamHandler(stdout)],
                     force=True)
+        getLogger('VITO').level = DEBUG

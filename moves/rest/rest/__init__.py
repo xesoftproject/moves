@@ -21,18 +21,12 @@ from .types import RegisterOutput
 from .types import StartNewGameInput
 from .types import UpdateInput
 
-
 LOGS = getLogger(__name__)
 
 
 async def mk_app(broker: Broker) -> QuartTrio:
     # pub/sub "infrastructure"
-    subscription_id = __name__
     topic_games_id = 'games'
-
-    await broker.add_subscription(OUTPUT_TOPIC,
-                                  subscription_id,
-                                  OutputQueueElement)
 
     broker.add_topic(topic_games_id, str)
 
@@ -40,6 +34,18 @@ async def mk_app(broker: Broker) -> QuartTrio:
                                allow_origin='http://localhost:8080',  # TODO
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
+
+    @app.websocket('/games')
+    async def games() -> None:
+        LOGS.info('games()')
+
+        await websocket.accept()
+
+        async with aclosing(broker.subscribe_topic(topic_games_id,
+                                                   GamesOutput)) as games_outputs:  # type: ignore
+            async for games_output in games_outputs:
+                LOGS.info('games [games_output: %s]', games_output)
+                await websocket.send(games_output.json())
 
     @app.route('/start_new_game', methods=['POST'])
     async def start_new_game() -> str:
@@ -73,7 +79,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
                     break
 
         async def send_start_game() -> None:
-            await broker.send(input_element, INPUT_TOPIC)
+            broker.send(input_element, INPUT_TOPIC)
 
         async with open_nursery() as nursery:
             nursery.start_soon(get_game_id)
@@ -85,10 +91,29 @@ async def mk_app(broker: Broker) -> QuartTrio:
         full = all([input_element.white is not None,
                     input_element.black is not None])
 
-        await broker.send(GamesOutput('add', game_id, full=full),
-                          topic_games_id)
+        broker.send(GamesOutput('add', game_id, full=full), topic_games_id)
 
         return game_id
+
+    @app.websocket('/register/<string:game_id>')
+    async def register(game_id: str) -> None:
+        getLogger('VITO').info('register(%s)', game_id)
+
+        await websocket.accept()
+
+        async with aclosing(broker.subscribe_topic(OUTPUT_TOPIC,
+                                                   OutputQueueElement)) as output_elements:  # type: ignore
+            async for output_element in output_elements:
+                getLogger('VITO').info('output_element: %s',
+                                       output_element.move)
+
+                if game_id != output_element.game_universe.game_id:
+                    continue
+
+                register_output = RegisterOutput.from_output_queue_element(
+                    output_element)
+
+                await websocket.send(register_output.json())
 
     @app.route('/update', methods=['POST'])
     async def update() -> str:            # supposedly called by transcribe
@@ -101,37 +126,9 @@ async def mk_app(broker: Broker) -> QuartTrio:
         input_element = update_input.input_queue_element()
         LOGS.info('update [input_element: {}]', input_element)
 
-        await broker.send(input_element, INPUT_TOPIC)
+        broker.send(input_element, INPUT_TOPIC)
 
         return str(input_element)
-
-    @app.websocket('/register/<string:game_id>')
-    async def register(game_id: str) -> None:
-        LOGS.info('register(%s)', game_id)
-
-        async for output_element in broker.subscribe(OUTPUT_TOPIC,
-                                                     subscription_id,
-                                                     OutputQueueElement):
-            LOGS.info('output_element: %s', output_element)
-
-            if game_id != output_element.game_universe.game_id:
-                continue
-
-            register_output = RegisterOutput.from_output_queue_element(
-                output_element)
-
-            await websocket.send(register_output.json())
-
-    @app.websocket('/games')
-    async def games() -> None:
-        LOGS.info('games()')
-
-        async with aclosing(broker.subscribe_topic(topic_games_id,
-                                                   GamesOutput)) as games_outputs:  # type: ignore
-            async for games_output in games_outputs:
-                LOGS.info('games [games_output: %s]', games_output)
-
-                await websocket.send(games_output.json())
 
     return app
 
