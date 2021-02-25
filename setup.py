@@ -45,6 +45,9 @@ setuptools.setup(name='moves',
                      'hypercorn',
                      'quart-cors',
                      'trio_asyncio',
-                     'jsonlines'
+                     'jsonlines',
+                     'PyAudio',
+                     'pocketsphinx',
+                     'SpeechRecognition'
                  ],
                  package_data={'moves': moves_package_data()})
