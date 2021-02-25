@@ -1,5 +1,5 @@
 from logging import getLogger
-from typing import Dict, Optional
+from typing import Dict
 from typing import Iterator
 from uuid import uuid4
 
