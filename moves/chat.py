@@ -59,6 +59,8 @@ async def mk_app(broker: Broker) -> QuartTrio:
         async with aclosing(broker.subscribe_topic(chats_topic_id,
                                                    str)) as chat_ids:  # type: ignore
             async for chat_id in chat_ids:
+                if chat_id not in broker.topics: # should be here?
+                    broker.add_topic(chat_id, ChatMessage)
                 await websocket.send(chat_id)
 
     @app.route('/chat/<string:chat_id>', methods=['POST'])
