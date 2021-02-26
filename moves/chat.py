@@ -105,7 +105,7 @@ async def chat() -> None:
     if KEYFILE:
         config.keyfile = KEYFILE
 
-    serve(await mk_app(load_broker()), config)  # type: ignore
+    await serve(await mk_app(load_broker()), config)  # type: ignore
 
 
 def main() -> None:

@@ -60,8 +60,8 @@ async def web() -> None:
         quart.session.pop('logged_in', None)
         return quart.redirect(quart.url_for('login_html'))
 
-    @app.route('/register_on_send', methods=['POST'])
-    async def register_on_send() -> quart.Response:
+    @app.route('/register', methods=['POST'])
+    async def register() -> quart.Response:
         form = await quart.request.form
         username = form['username']
         password = form['password']

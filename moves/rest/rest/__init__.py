@@ -105,9 +105,9 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
         return game_id
 
-    @app.websocket('/register_on_send/<string:game_id>')
-    async def register_on_send(game_id: str) -> None:
-        getLogger('VITO').info('register_on_send(%s)', game_id)
+    @app.websocket('/register/<string:game_id>')
+    async def register(game_id: str) -> None:
+        getLogger('VITO').info('register(%s)', game_id)
 
         await websocket.accept()
 

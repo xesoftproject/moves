@@ -33,9 +33,14 @@ def load_broker(fn_io: StringIO, broker: Optional[Broker]=None) -> Broker: ...
 def load_broker(fn_io: Union[str, StringIO]=DEFAULT_FN,
                 broker: Optional[Broker]=None)-> Broker:
     old_messages = DefaultDict[str, List[Any]](list)
-    with (open(fn_io, 'r') if isinstance(fn_io, str) else Reader(fn_io)) as reader:
-        for message, topic_id in reader:
-            old_messages[topic_id].append(message)
+    try:
+        with (open(fn_io, 'r')
+              if isinstance(fn_io, str)
+              else Reader(fn_io)) as reader:
+            for message, topic_id in reader:
+                old_messages[topic_id].append(message)
+    except OSError:
+        pass
 
     def on_add_topic(topic_id: str, topic: Topic[T]) -> None:
         'pre-fill topic with old messages'
@@ -44,7 +49,9 @@ def load_broker(fn_io: Union[str, StringIO]=DEFAULT_FN,
 
     def on_send(message: Any, topic_id: str) -> None:
         'keep track of the message sent'
-        with (open(fn_io, 'a') if isinstance(fn_io, str) else Writer(fn_io)) as writer:
+        with (open(fn_io, 'a')
+              if isinstance(fn_io, str)
+              else Writer(fn_io)) as writer:
             writer.write((message, topic_id))
 
     b = broker if broker is not None else Broker()
