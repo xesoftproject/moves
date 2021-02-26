@@ -8,6 +8,8 @@ from typing import AsyncIterator
 from typing import Dict
 from typing import Generic
 from typing import List
+from typing import Protocol
+from typing import Set
 from typing import Type
 from typing import TypeVar
 from typing import cast
@@ -88,9 +90,30 @@ class Topic(Generic[T], AsyncResource):
         assert not self.subscriptions
 
 
+class AddTopicCallback(Generic[T], Protocol):
+    def __call__(self, topic_id: str, topic: Topic[T]) -> None: ...
+
+
+T_contra = TypeVar('T_contra', contravariant=True)
+
+
+class SendCallback(Generic[T_contra], Protocol):
+    def __call__(self, message: T_contra, topic_id: str) -> None: ...
+
+
 class Broker(AsyncResource):
     def __init__(self) -> None:
         self.topics: Dict[str, Topic[Any]] = {}
+        self.send_callbacks: Set[SendCallback[Any]] = set()
+        self.add_topic_callbacks: Set[AddTopicCallback[Any]] = set()
+
+    def register_on_add_topic(self, callback: AddTopicCallback[T])->None:
+        'register a callback to be called when a topic is created'
+        self.add_topic_callbacks.add(callback)
+
+    def register_on_send(self, callback: SendCallback[T]) -> None:
+        'register a callback to be called when a message is sent to a topic'
+        self.send_callbacks.add(callback)
 
     def add_topic(self, topic_id: str, _cls: Type[T]) -> Topic[T]:
         if topic_id in self.topics:
@@ -98,6 +121,8 @@ class Broker(AsyncResource):
 
         topic = Topic[T]()
         self.topics[topic_id] = topic
+        for callback in self.add_topic_callbacks:
+            callback(topic_id, topic)
         return topic
 
     def add_subscription(self, topic_id: str, subscription_id: str, _cls: Type[T], *,
@@ -115,6 +140,8 @@ class Broker(AsyncResource):
 
     def send(self, message: T, topic_id: str) -> None:
         self.topics[topic_id].send(message)
+        for callback in self.send_callbacks:
+            callback(message, topic_id)
 
     async def subscribe(self, topic_id: str, subscription_id: str, _cls: Type[T]) -> AsyncIterator[T]:
         async with aclosing(cast(AsyncResource,

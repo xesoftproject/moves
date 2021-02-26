@@ -1,16 +1,20 @@
 # load and save messages from file
 
-from functools import wraps
+from io import StringIO
 from typing import Any
-from typing import Callable
-from typing import Literal
-from typing import Tuple
+from typing import DefaultDict
+from typing import List
+from typing import Optional
 from typing import TypeVar
 from typing import Union
+from typing import overload
 
+from jsonlines import Reader
+from jsonlines import Writer
 from jsonlines import open
 
 from ..triopubsub import Broker
+from ..triopubsub import Topic
 
 T = TypeVar('T')
 
@@ -18,42 +22,32 @@ T = TypeVar('T')
 DEFAULT_FN = 'storage.jsonl'
 
 
-Operation = Union[Tuple[Literal['add_topic'], str],
-                  Tuple[Literal['send'], Any, str]]
+@overload
+def load_broker(fn_io: str=DEFAULT_FN) -> Broker: ...
 
 
-def load_broker(broker: Broker, fn: str=DEFAULT_FN) -> None:
-    # supported operation: add_topic, send
-
-    try:
-        ops = open(fn, 'r')
-    except FileNotFoundError:
-        return
-    else:
-        with ops as operations:
-            for operation in operations:
-                if operation[0] == 'add_topic':
-                    topic_id = operation[1]
-                    broker.add_topic(topic_id, type)  # Type[Any] is not a type
-                elif operation[0] == 'send':
-                    message, topic_id = operation[1:]
-                    broker.send(message, topic_id)
+@overload
+def load_broker(fn_io: StringIO, broker: Optional[Broker]=None) -> Broker: ...
 
 
-async def update_broker(broker: Broker, fn: str=DEFAULT_FN) -> None:
-    def add_signal(method: Callable[..., Any],
-                   signal: Callable[..., None]) -> Callable[..., Any]:
-        @wraps(method)
-        def wrapper(*args: Any) -> Any:
-            signal(*args)
-            return method(*args)
-        return wrapper
+def load_broker(fn_io: Union[str, StringIO]=DEFAULT_FN,
+                broker: Optional[Broker]=None)-> Broker:
+    old_messages = DefaultDict[str, List[Any]](list)
+    with (open(fn_io, 'r') if isinstance(fn_io, str) else Reader(fn_io)) as reader:
+        for message, topic_id in reader:
+            old_messages[topic_id].append(message)
 
-    def append(operation: Operation) -> None:
-        with open(fn, 'a') as writer:
-            writer.write(operation)
+    def on_add_topic(topic_id: str, topic: Topic[T]) -> None:
+        'pre-fill topic with old messages'
+        for old_message in old_messages[topic_id]:
+            topic.send(old_message)
 
-    broker.add_topic = add_signal(broker.add_topic,  # type: ignore
-                                  lambda topic_id, _: append(('add_topic', topic_id)))
-    broker.send = add_signal(broker.send,  # type: ignore
-                             lambda message, topic_id: append(('send', message, topic_id)))
+    def on_send(message: Any, topic_id: str) -> None:
+        'keep track of the message sent'
+        with (open(fn_io, 'a') if isinstance(fn_io, str) else Writer(fn_io)) as writer:
+            writer.write((message, topic_id))
+
+    b = broker if broker is not None else Broker()
+    b.register_on_add_topic(on_add_topic)
+    b.register_on_send(on_send)
+    return b

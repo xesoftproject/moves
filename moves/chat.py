@@ -21,7 +21,6 @@ from .configurations import KEYFILE
 from .configurations import WEB_PORT
 from .logs import setup_logs
 from .rest.storage import load_broker
-from .rest.storage import update_broker
 from .triopubsub import Broker
 
 setup_logs(__name__)
@@ -106,11 +105,7 @@ async def chat() -> None:
     if KEYFILE:
         config.keyfile = KEYFILE
 
-    broker = Broker()
-    load_broker(broker)
-    update_broker(broker)
-
-    serve(await mk_app(broker), config)  # type: ignore
+    serve(await mk_app(load_broker()), config)  # type: ignore
 
 
 def main() -> None:

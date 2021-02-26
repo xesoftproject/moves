@@ -48,6 +48,7 @@ setuptools.setup(name='moves',
                      'jsonlines',
                      'PyAudio',
                      'pocketsphinx',
-                     'SpeechRecognition'
+                     'SpeechRecognition',
+                     'mockito'
                  ],
                  package_data={'moves': moves_package_data()})

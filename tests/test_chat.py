@@ -6,6 +6,7 @@ from quart_trio import QuartTrio
 from trio import open_nursery
 
 from moves.chat import mk_app
+from moves.triopubsub import Broker
 
 from ._support_for_tests import timeout
 from ._support_for_tests import trio_test
@@ -29,7 +30,7 @@ class TestChat(TestCase):
                 acc.append(await ws.receive())
                 acc.append(await ws.receive())
 
-        app = await mk_app()
+        app = await mk_app(Broker())
         async with open_nursery() as nursery:
             nursery.start_soon(producer, app)
             nursery.start_soon(consumer, app)
@@ -51,7 +52,7 @@ class TestChat(TestCase):
 
         acc: List[str] = []
 
-        app = await mk_app()
+        app = await mk_app(Broker())
         client = app.test_client()  # only one client -> act as the browser?
         await client.post('/chat/c')  # create a chat
         async with client.websocket('/chat/c',
@@ -68,7 +69,7 @@ class TestChat(TestCase):
     @trio_test
     @timeout(5)
     async def test_chat_websocket_reload(self) -> None:
-        app = await mk_app()
+        app = await mk_app(Broker())
 
         async def init() -> None:
             client = app.test_client()
