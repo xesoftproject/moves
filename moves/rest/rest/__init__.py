@@ -38,7 +38,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
     allow_origin = (f'{HTTP}://{HOSTNAME}'
                     if ((HTTP == 'http' and WEB_PORT == 80)
                         or (HTTP == 'https' and WEB_PORT == 443))
-                    else f'{HTTP}://{HOSTNAME}')
+                    else f'{HTTP}://{HOSTNAME}:{WEB_PORT}')
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
                                allow_origin=allow_origin,
