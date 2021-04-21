@@ -13,9 +13,6 @@ HOSTNAME = 'www.xesoft.ml'
 # game server port
 REST_PORT = 8443
 
-# chat server port
-CHAT_PORT = 9443
-
 # stockfish executable path (if not in $PATH)
 STOCKFISH = '/usr/games/stockfish'
 

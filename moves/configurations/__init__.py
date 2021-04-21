@@ -23,7 +23,6 @@ __all__ = ['WEB_PORT',
            'WS',
            'HOSTNAME',
            'REST_PORT',
-           'CHAT_PORT',
            'STOCKFISH',
            'CERTFILE',
            'KEYFILE']
