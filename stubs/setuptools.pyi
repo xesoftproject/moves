@@ -1,4 +1,6 @@
-import typing
+from typing import Dict
+from typing import List
+from typing import Optional
 
 
 def setup(name: str,
@@ -9,14 +11,13 @@ def setup(name: str,
           long_description: str,
           long_description_content_type: str,
           url: str,
-          packages: typing.List[str],
+          packages: List[str],
           python_requires: str,
-          entry_points: typing.Dict[str, typing.List[str]],
-          install_requires: typing.List[str],
-          package_data: typing.Dict[str, typing.List[str]]
-          ) -> None:
+          entry_points: Dict[str, List[str]],
+          install_requires: List[str],
+          package_data: Optional[Dict[str, List[str]]]=None) -> None:
     ...
 
 
-def find_packages() -> typing.List[str]:
+def find_packages() -> List[str]:
     ...

@@ -47,8 +47,8 @@ async def parent() -> None:
             # input and output from/to cpu
             nursery.start_soon(cpu, broker)
     finally:
-        broker.remove_topic(INPUT_TOPIC)
-        broker.remove_topic(OUTPUT_TOPIC)
+        await broker.remove_topic(INPUT_TOPIC)
+        await broker.remove_topic(OUTPUT_TOPIC)
         await broker.aclose()
 
 
