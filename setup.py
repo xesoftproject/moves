@@ -25,8 +25,5 @@ setup(name='moves',
           'quart-cors',
           'trio_asyncio',
           'jsonlines',
-          'PyAudio',
-          'pocketsphinx',
-          'SpeechRecognition',
           'mockito'
       ])
