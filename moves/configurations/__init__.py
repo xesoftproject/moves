@@ -17,11 +17,9 @@ if running_on_ec2():
 else:
     from .local import *
 
+REST_PORT = 8443
 
-__all__ = ['WEB_PORT',
-           'HTTP',
-           'WS',
-           'HOSTNAME',
+__all__ = ['HOSTNAME',
            'REST_PORT',
            'STOCKFISH',
            'CERTFILE',

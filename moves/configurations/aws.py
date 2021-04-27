@@ -1,17 +1,5 @@
-# web server port (where you point your browser at)
-WEB_PORT = 443
-
-# the rest protocol
-HTTP = 'https'
-
-# websocket protocol
-WS = 'wss'
-
-# the hostname of
+# the hostname
 HOSTNAME = 'www.xesoft.ml'
-
-# game server port
-REST_PORT = 8443
 
 # stockfish executable path (if not in $PATH)
 STOCKFISH = '/usr/games/stockfish'

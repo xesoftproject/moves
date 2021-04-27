@@ -28,7 +28,7 @@ async def parent() -> None:
                 send messages to players (pc and human) to propagate the moves
     cpu handle incoming messages to deal with a move
         send messages to game_engine to signal a move
-    rest is similar to cpu, but exposes the API trough REST/WS endpoints
+    rest is similar to cpu, but exposes the API trough REST/WEBSOCKET endpoints
     '''
 
     # 2 topics (in+out) - the needed subscription will be created by each task

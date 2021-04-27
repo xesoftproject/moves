@@ -12,10 +12,8 @@ from trio import open_nursery
 
 from ...configurations import CERTFILE
 from ...configurations import HOSTNAME
-from ...configurations import HTTP
 from ...configurations import KEYFILE
 from ...configurations import REST_PORT
-from ...configurations import WEB_PORT
 from ...triopubsub import Broker
 from ..constants import INPUT_TOPIC
 from ..constants import OUTPUT_TOPIC
@@ -35,13 +33,8 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
     broker.add_topic(topic_games_id, str)
 
-    allow_origin = (f'{HTTP}://{HOSTNAME}'
-                    if ((HTTP == 'http' and WEB_PORT == 80)
-                        or (HTTP == 'https' and WEB_PORT == 443))
-                    else f'{HTTP}://{HOSTNAME}:{WEB_PORT}')
-
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin=allow_origin,
+                               allow_origin=f'https://{HOSTNAME}',
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 
