@@ -12,6 +12,7 @@ setup(name='moves',
       long_description_content_type='text/markdown',
       url='https://github.com/xesoftproject/moves',
       packages=find_packages(),
+      package_data={'': ['localhost.crt', 'localhost.key']},
       python_requires='>=3.8',
       entry_points={
           'console_scripts': ['moves-rest = moves.rest:main']

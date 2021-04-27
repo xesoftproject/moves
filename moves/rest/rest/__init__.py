@@ -141,9 +141,7 @@ async def rest(broker: Broker) -> None:
 
     config = Config()
     config.bind = [f'0.0.0.0:{REST_PORT}']
-    if CERTFILE:
-        config.certfile = CERTFILE
-    if KEYFILE:
-        config.keyfile = KEYFILE
+    config.certfile = CERTFILE
+    config.keyfile = KEYFILE
 
     await serve(await mk_app(broker), config)  # type: ignore
