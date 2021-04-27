@@ -15,7 +15,7 @@ To play chess you need a chess engine, like stockfish. Get it from
 ```bat
 python -mvenv VENV
 VENV\Script\Activate
-python -mpip install path\to\moves 
+python -mpip install path\to\moves
 ```
 
 ## install - linux
@@ -23,40 +23,23 @@ python -mpip install path\to\moves
 ```sh
 python -mvenv VENV
 . VENV/bin/activate
-python -mpip install path/to/moves 
+python -mpip install path/to/moves
 ```
 
 ## executables
 
 `moves-rest` rest interface to push stuff on STOMP broker
-`moves-web` basic web server - hosts .html files and stuff
 
 ## run the P.O.C. locally
 
-open 2 terminals and run
+open a terminal and run
 
 ```bat
 moves-rest
 ```
 
-```bat
-moves-web
-```
+- or -
 
-then point the browser to <http://localhost:8080/>
+launch `python moves/rest`
 
-You should see a simple web page with a way to play chess.
-You can start a new game, then a chess board should appair.
-You are the white, you start. Choose your move and click on move to make a move
-Your move, and then the cpu one, appears below the chess table.
-
-What has happened?
-
-The buttons "emulates" `transcribe` interactions, that will call the
-`moves-rest` api to send the inferred speech.
-
-the rest api talk to the chess engine and calculate the next move.
-
-All the moves are sent to an active-mq queue.
-
-The page is is listening on the same queue, and will show the output.
+The REST endpoint root is at <https://localhost:8443/>
