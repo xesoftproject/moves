@@ -1,13 +1,12 @@
 from json import dumps
 from json import loads
 from logging import getLogger
-from os.path import abspath
-from os.path import join
 from typing import cast
 
 from async_generator import aclosing
 from hypercorn.config import Config
 from hypercorn.trio import serve
+from pkg_resources import resource_filename
 from quart import request
 from quart import websocket
 from quart_cors import cors
@@ -148,7 +147,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
         await websocket.accept()
 
-        rec = KaldiRecognizer(Model(abspath(join(__file__, '..', '..', '..', 'model'))),
+        rec = KaldiRecognizer(Model(resource_filename('moves', 'model')),
                               int(samplerate),
                               dumps([f'{letter} {number}'
                                      for letter in LETTERS
