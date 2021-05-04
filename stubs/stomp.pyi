@@ -1,6 +1,5 @@
 import typing
 
-
 class Connection:
     def __init__(self,
                  host_and_ports: typing.List[typing.Tuple[str, int]]

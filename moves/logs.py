@@ -20,7 +20,7 @@ LOGS_ROOT = 'logs'
 _SETUP_DONE = False
 
 
-def setup_logs(filename: str, running_on_ec2: bool=running_on_ec2()) -> None:
+def setup_logs(filename: str, running_on_ec2: bool = running_on_ec2()) -> None:
     global _SETUP_DONE
     if _SETUP_DONE:
         return
@@ -32,11 +32,16 @@ def setup_logs(filename: str, running_on_ec2: bool=running_on_ec2()) -> None:
         # ensure the directory exists
         makedirs(LOGS_ROOT, exist_ok=True)
 
-        basicConfig(level=DEBUG,
-                    handlers=[StreamHandler(stdout),
-                              TimedRotatingFileHandler(join(LOGS_ROOT, filename),
-                                                       when='midnight')],
-                    force=True)
+        basicConfig(
+            level=DEBUG,
+            handlers=[
+                StreamHandler(stdout),
+                TimedRotatingFileHandler(
+                    join(
+                        LOGS_ROOT,
+                        filename),
+                    when='midnight')],
+            force=True)
     else:
         basicConfig(level=CRITICAL,
                     handlers=[StreamHandler(stdout)],

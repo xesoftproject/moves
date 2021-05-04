@@ -2,7 +2,6 @@ import socket
 import typing
 import uuid
 
-
 EC2_HOSTNAME = 'ip-172-31-36-240'
 
 

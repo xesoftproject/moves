@@ -6,7 +6,6 @@ from quart_trio.app import QuartTrio
 
 from ._support_for_tests import trio_test
 
-
 LOGS = getLogger(__name__)
 
 

@@ -34,8 +34,8 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             broker.add_topic('t', str)
-            broker.add_subscription('t', 's1',  str)
-            broker.add_subscription('t', 's2',  str)
+            broker.add_subscription('t', 's1', str)
+            broker.add_subscription('t', 's2', str)
 
             broker.send('m1', 't')
             broker.send('m2', 't')
@@ -54,8 +54,8 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             broker.add_topic('t', str)
-            broker.add_subscription('t', 's1',  str)
-            broker.add_subscription('t', 's2',  str)
+            broker.add_subscription('t', 's1', str)
+            broker.add_subscription('t', 's2', str)
 
             acc: Dict[str, str] = {}
             async with open_nursery() as nursery:
@@ -119,8 +119,8 @@ class TestTriopubsub(TestCase):
         broker = Broker()
         try:
             topic = broker.add_topic('topic', str)
-            broker.add_subscription('topic', 'subscription1',  str)
-            broker.add_subscription('topic', 'subscription2',  str)
+            broker.add_subscription('topic', 'subscription1', str)
+            broker.add_subscription('topic', 'subscription2', str)
             self.assertTrue('topic' in broker.topics)
             self.assertTrue('subscription1' in topic.subscriptions)
             self.assertTrue('subscription2' in topic.subscriptions)
@@ -142,13 +142,13 @@ class TestTriopubsub(TestCase):
     async def test_add_keyerror(self) -> None:
         broker = Broker()
         broker.add_topic('topic', str)
-        broker.add_subscription('topic', 'subscription',  str)
+        broker.add_subscription('topic', 'subscription', str)
 
         with self.assertRaises(KeyError):
             broker.add_topic('topic', str)
 
         with self.assertRaises(KeyError):
-            broker.add_subscription('topic', 'subscription',  str)
+            broker.add_subscription('topic', 'subscription', str)
 
     @trio_test
     @timeout(5)
@@ -202,7 +202,7 @@ class TestTriopubsub(TestCase):
                 b.send('m1', 't')
 
                 s1 = b.add_subscription('t', 's1', str,
-                                              send_old_messages=False)
+                                        send_old_messages=False)
                 try:
                     self.assertEqual(0, s1.s.statistics().current_buffer_used)
                     b.send('m2', 't')

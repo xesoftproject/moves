@@ -6,7 +6,6 @@ from typing import Iterator
 from typing import Literal
 from typing import overload
 
-
 class Reader(Iterable[Any], ContextManager['Reader']):
     def __init__(self, fn: StringIO) -> None: ...
 

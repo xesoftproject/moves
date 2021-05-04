@@ -73,7 +73,7 @@ class TestRest(TestCase):
         async with open_nursery() as nursery:
             s, r = open_memory_channel[int](inf)
 
-            async def p()->None:
+            async def p() -> None:
                 try:
                     async with aclosing(s) as s2:
                         while True:

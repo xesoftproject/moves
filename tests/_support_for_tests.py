@@ -57,7 +57,7 @@ async def atake(n: int, acloseable: AsyncIterable[T]) -> List[T]:
 
 
 class timeout:
-    def __init__(self, seconds: int=5) -> None:
+    def __init__(self, seconds: int = 5) -> None:
         self.seconds = seconds
         if gettrace() is not None:
             self.seconds *= 100  # give me more time in debug

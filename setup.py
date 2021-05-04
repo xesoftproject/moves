@@ -1,9 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
-setup(name='moves',
+setup(name='xesoft_moves',
       version='0.0.1',
       author='Vito De Tullio',
       author_email='vito.detullio@gmail.com',
@@ -26,5 +27,6 @@ setup(name='moves',
           'quart-cors',
           'trio_asyncio',
           'jsonlines',
-          'mockito'
+          'mockito',
+          'vosk'
       ])

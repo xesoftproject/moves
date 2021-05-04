@@ -1,4 +1,8 @@
+from json import dumps
+from json import loads
 from logging import getLogger
+from os.path import abspath
+from os.path import join
 from typing import cast
 
 from async_generator import aclosing
@@ -9,6 +13,8 @@ from quart import websocket
 from quart_cors import cors
 from quart_trio import QuartTrio
 from trio import open_nursery
+from vosk import KaldiRecognizer
+from vosk import Model
 
 from ...configurations import CERTFILE
 from ...configurations import HOSTNAME
@@ -23,6 +29,9 @@ from .types import GamesOutput
 from .types import RegisterOutput
 from .types import StartNewGameInput
 from .types import UpdateInput
+
+LETTERS = 'a', 'bi', 'ci', 'di', 'e', 'effe', 'gi', 'acca'
+NUMBERS = 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto'
 
 LOGS = getLogger(__name__)
 
@@ -132,6 +141,24 @@ async def mk_app(broker: Broker) -> QuartTrio:
         broker.send(input_element, INPUT_TOPIC)
 
         return str(input_element)
+
+    @app.websocket('/micdrop/<string:samplerate>')
+    async def micdrop(samplerate: str = '44100') -> None:
+        LOGS.info('micdrop(samplerate: {})', samplerate)
+
+        await websocket.accept()
+
+        rec = KaldiRecognizer(Model(abspath(join(__file__, '..', '..', '..', 'model'))),
+                              int(samplerate),
+                              dumps([f'{letter} {number}'
+                                     for letter in LETTERS
+                                     for number in NUMBERS]))
+
+        while True:
+            data = await websocket.receive()
+
+            if rec.AcceptWaveform(data):
+                await websocket.send_json(loads(rec.Result()))
 
     return app
 

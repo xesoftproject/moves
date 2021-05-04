@@ -1,6 +1,6 @@
-import flask
 import typing
 
+import flask
 
 class CORS:
     def __init__(self, flask: flask.Flask) -> None:

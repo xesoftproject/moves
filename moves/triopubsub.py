@@ -50,7 +50,7 @@ class Topic(Generic[T], AsyncResource):
         self.aclosing = False
 
     def add_subscription(self, subscription_id: str, *,
-                         send_old_messages: bool=True) -> Subscription[T]:
+                         send_old_messages: bool = True) -> Subscription[T]:
         if self.aclosing:
             raise BrokenPipeError()
         if subscription_id in self.subscriptions:
@@ -66,7 +66,7 @@ class Topic(Generic[T], AsyncResource):
         self.subscriptions[subscription_id] = subscription
         return subscription
 
-    async def remove_subscription(self, subscription_id: str)->None:
+    async def remove_subscription(self, subscription_id: str) -> None:
         subscription = self.subscriptions[subscription_id]
         del self.subscriptions[subscription_id]
         await subscription.aclose()
@@ -107,7 +107,7 @@ class Broker(AsyncResource):
         self.send_callbacks: Set[SendCallback[Any]] = set()
         self.add_topic_callbacks: Set[AddTopicCallback[Any]] = set()
 
-    def register_on_add_topic(self, callback: AddTopicCallback[T])->None:
+    def register_on_add_topic(self, callback: AddTopicCallback[T]) -> None:
         'register a callback to be called when a topic is created'
         self.add_topic_callbacks.add(callback)
 
@@ -125,10 +125,15 @@ class Broker(AsyncResource):
             callback(topic_id, topic)
         return topic
 
-    def add_subscription(self, topic_id: str, subscription_id: str, _cls: Type[T], *,
-                         send_old_messages: bool=True) -> Subscription[T]:
-        return self.topics[topic_id].add_subscription(subscription_id,
-                                                      send_old_messages=send_old_messages)
+    def add_subscription(
+            self,
+            topic_id: str,
+            subscription_id: str,
+            _cls: Type[T],
+            *,
+            send_old_messages: bool = True) -> Subscription[T]:
+        return self.topics[topic_id].add_subscription(
+            subscription_id, send_old_messages=send_old_messages)
 
     async def remove_subscription(self, topic_id: str, subscription_id: str) -> None:
         await self.topics[topic_id].remove_subscription(subscription_id)
@@ -151,7 +156,7 @@ class Broker(AsyncResource):
 
     @asynccontextmanager
     async def tmp_subscription(self, topic_id: str, _cls: Type[T], *,
-                               send_old_messages: bool=True) -> AsyncIterator[str]:
+                               send_old_messages: bool = True) -> AsyncIterator[str]:
         subscription_id = str(uuid4())
 
         self.add_subscription(topic_id, subscription_id, _cls,
@@ -162,7 +167,7 @@ class Broker(AsyncResource):
             await self.remove_subscription(topic_id, subscription_id)
 
     async def subscribe_topic(self, topic_id: str, _cls: Type[T], *,
-                              send_old_messages: bool=True) -> AsyncIterator[T]:
+                              send_old_messages: bool = True) -> AsyncIterator[T]:
         async with self.tmp_subscription(topic_id, _cls,
                                          send_old_messages=send_old_messages) as subscription_id:
             async with aclosing(cast(AsyncResource,

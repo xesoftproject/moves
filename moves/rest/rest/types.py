@@ -1,12 +1,18 @@
 'rest types'
 
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
+from dataclasses import dataclass
 from json import dumps
-from typing import Optional, Tuple, Literal
+from typing import Literal
+from typing import Optional
+from typing import Tuple
 from uuid import uuid4
 
-from ..types import Player, PlayerType, InputQueueElement, Command, OutputQueueElement
-
+from ..types import Command
+from ..types import InputQueueElement
+from ..types import OutputQueueElement
+from ..types import Player
+from ..types import PlayerType
 
 Type = Literal['cpu', 'human']
 
@@ -79,8 +85,8 @@ class RegisterOutput:
     winner: Optional[str]
 
     @classmethod
-    def from_output_queue_element(cls,
-                                  output_element: OutputQueueElement) -> 'RegisterOutput':
+    def from_output_queue_element(
+            cls, output_element: OutputQueueElement) -> 'RegisterOutput':
         board = output_element.game_universe.board
 
         return RegisterOutput(output_element.move,

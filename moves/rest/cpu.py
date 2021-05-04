@@ -96,7 +96,7 @@ async def cpu(broker: Broker) -> None:
             _, engine = await aio_as_trio(popen_uci)(STOCKFISH)
         else:
             engine = SimpleEngine.popen_uci(STOCKFISH)
-    except:
+    except BaseException:
         LOGS.error('STOCKFISH: %s', STOCKFISH)
         raise
 
