@@ -144,7 +144,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
     @app.websocket('/micdrop/<string:samplerate>')
     async def micdrop(samplerate: str = '44100') -> None:
-        LOGS.info('micdrop(samplerate: {})', samplerate)
+        LOGS.info('micdrop(samplerate: %s)', samplerate)
 
         await websocket.accept()
 
