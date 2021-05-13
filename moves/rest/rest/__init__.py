@@ -1,3 +1,4 @@
+from base64 import b64decode
 from json import dumps
 from json import loads
 from logging import getLogger
@@ -14,6 +15,9 @@ from quart_trio import QuartTrio
 from trio import open_nursery
 from vosk import KaldiRecognizer
 from vosk import Model
+
+from moves.rest.rest.types import AudioInput
+from moves.rest.rest.types import KaldiResult
 
 from ...configurations import CERTFILE
 from ...configurations import HOSTNAME
@@ -33,6 +37,25 @@ LETTERS = 'a', 'bi', 'ci', 'di', 'e', 'effe', 'gi', 'acca'
 NUMBERS = 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto'
 
 LOGS = getLogger(__name__)
+
+
+def clean(raw: str) -> str:
+    return {'a': 'a',
+            'bi': 'b',
+            'ci': 'c',
+            'di': 'd',
+            'e': 'e',
+            'effe': 'f',
+            'gi': 'g',
+            'acca': 'h',
+            'uno': '1',
+            'due': '2',
+            'tre': '3',
+            'quattro': '4',
+            'cinque': '5',
+            'sei': '6',
+            'sette': '7',
+            'otto': '8'}[raw]
 
 
 async def mk_app(broker: Broker) -> QuartTrio:
@@ -129,13 +152,13 @@ async def mk_app(broker: Broker) -> QuartTrio:
     @app.route('/update', methods=['POST'])
     async def update() -> str:            # supposedly called by transcribe
         body = request.json
-        LOGS.info('update [body: {}]', body)
+        LOGS.info('update [body: %s]', body)
 
         update_input = UpdateInput(**body)
-        LOGS.info('update [update_input: {}]', update_input)
+        LOGS.info('update [update_input: %s]', update_input)
 
         input_element = update_input.input_queue_element()
-        LOGS.info('update [input_element: {}]', input_element)
+        LOGS.info('update [input_element: %s]', input_element)
 
         broker.send(input_element, INPUT_TOPIC)
 
@@ -158,6 +181,68 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
             if rec.AcceptWaveform(data):
                 await websocket.send_json(loads(rec.Result()))
+
+    @app.websocket('/moves/<string:samplerate>')
+    async def moves(samplerate: str = '44100') -> None:
+        '''expecte 3 fields for each message
+        user_id: str
+        game_id: str
+        data: bytes
+        
+        send back a json with 'error' or 'success' fields
+        '''
+
+        LOGS.info('moves(samplerate: %s)', samplerate)
+
+        await websocket.accept()
+
+        rec = KaldiRecognizer(Model(resource_filename('moves', 'model')),
+                              int(samplerate),
+                              dumps([f'{letter} {number}'
+                                     for letter in LETTERS
+                                     for number in NUMBERS]))
+
+        while True:
+            audio_input: AudioInput = loads(await websocket.receive())
+            LOGS.info('moves [audio_input: %s]', {**audio_input, 'data': None})
+
+            data = b64decode(audio_input['data'])
+
+            if rec.AcceptWaveform(data):
+                result: KaldiResult = loads(rec.Result())
+                LOGS.info('moves [result: %s]', result)
+
+                text = result.get('text')
+
+                if text is None:
+                    LOGS.warning('moves [text: %s]', text)
+                    await websocket.send_json({'error': 'no text recognized'})
+                    continue
+
+                # text *MUST* be 4 words, letter, number, letter, number
+                words = text.split()
+                if (len(words) != 4
+                        or words[0] not in LETTERS
+                        or words[1] not in NUMBERS
+                        or words[2] not in LETTERS
+                        or words[3] not in NUMBERS):
+                    LOGS.warning('moves [words: %s]', words)
+                    await websocket.send_json({'error': 'please send "FROM" and "TO" coordinates, in the form A1B2'})
+                    continue
+
+                move = ''.join(map(clean, words))
+
+                update_input = UpdateInput(user_id=audio_input['user_id'],
+                                           game_id=audio_input['game_id'],
+                                           move=move)
+                LOGS.info('moves [update_input: %s]', update_input)
+
+                input_element = update_input.input_queue_element()
+                LOGS.info('moves [input_element: %s]', input_element)
+
+                broker.send(input_element, INPUT_TOPIC)
+
+                await websocket.send_json({'success': str(input_element)})
 
     return app
 

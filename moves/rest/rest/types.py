@@ -6,6 +6,7 @@ from json import dumps
 from typing import Literal
 from typing import Optional
 from typing import Tuple
+from typing import TypedDict
 from uuid import uuid4
 
 from ..types import Command
@@ -95,3 +96,11 @@ class RegisterOutput:
 
     def json(self) -> str:
         return dumps(asdict(self))
+
+class AudioInput(TypedDict):
+    user_id: str
+    game_id: str
+    data: bytes
+
+class KaldiResult(TypedDict):
+    text: str

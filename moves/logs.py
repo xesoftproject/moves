@@ -1,5 +1,6 @@
 from logging import CRITICAL
 from logging import DEBUG
+from logging import INFO
 from logging import StreamHandler
 from logging import basicConfig
 from logging import getLogger
@@ -43,7 +44,6 @@ def setup_logs(filename: str, running_on_ec2: bool = running_on_ec2()) -> None:
                     when='midnight')],
             force=True)
     else:
-        basicConfig(level=CRITICAL,
+        basicConfig(level=INFO,
                     handlers=[StreamHandler(stdout)],
                     force=True)
-        getLogger('VITO').level = DEBUG
