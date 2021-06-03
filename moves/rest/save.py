@@ -11,10 +11,19 @@ from .constants import OUTPUT_TOPIC
 from .types import OutputQueueElement
 from .types import PlayerType
 from .types import Result
+from typing import TypedDict, Dict
 
 LOGS = getLogger(__name__)
 
 DEFAULT_FN = 'games_history.js'
+
+
+class PlayerGamesHistory(TypedDict):
+    won_count: int
+    played_count: int
+
+
+GamesHistory = Dict[str, PlayerGamesHistory]
 
 
 def store(player_id: str, *, is_victory: bool) -> None:
@@ -22,18 +31,22 @@ def store(player_id: str, *, is_victory: bool) -> None:
     played_count_delta = 1
 
     with open(DEFAULT_FN, 'r') as fp:
-        json = load(fp)
+        json: GamesHistory = load(fp)
 
     if player_id not in json:
-        json[player_id] = {
-            'won_count': 0,
-            'played_count': 0
-        }
+        json[player_id] = PlayerGamesHistory(won_count=0, played_count=0)
+
     json[player_id]['won_count'] += won_count_delta
     json[player_id]['played_count'] += played_count_delta
 
     with open(DEFAULT_FN, 'w') as fp:
         dump(json, fp)
+
+
+def load_player(player_id: str) -> PlayerGamesHistory:
+    with open(DEFAULT_FN, 'r') as fp:
+        json: GamesHistory = load(fp)
+        return json[player_id]
 
 
 async def save(broker: Broker) -> None:

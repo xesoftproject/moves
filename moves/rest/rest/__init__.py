@@ -32,6 +32,7 @@ from .types import GamesOutput
 from .types import RegisterOutput
 from .types import StartNewGameInput
 from .types import UpdateInput
+from ..save import load_player, PlayerGamesHistory
 
 LETTERS = 'a', 'bi', 'ci', 'di', 'e', 'effe', 'gi', 'acca'
 NUMBERS = 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto'
@@ -188,7 +189,7 @@ async def mk_app(broker: Broker) -> QuartTrio:
         user_id: str
         game_id: str
         data: bytes
-        
+
         send back a json with 'error' or 'success' fields
         '''
 
@@ -243,6 +244,11 @@ async def mk_app(broker: Broker) -> QuartTrio:
                 broker.send(input_element, INPUT_TOPIC)
 
                 await websocket.send_json({'success': str(input_element)})
+
+    @app.route('/player_games_history/<string:player_id>', methods=['GET'])
+    async def player_games_history(player_id: str) -> PlayerGamesHistory:
+        # TODO retrieve it from cookies
+        return load_player(player_id)
 
     return app
 
