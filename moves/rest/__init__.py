@@ -9,6 +9,7 @@ from ..triopubsub import Broker
 from .constants import INPUT_TOPIC
 from .constants import OUTPUT_TOPIC
 from .cpu import cpu
+from .save import save
 from .game_engine import game_engine
 from .rest import rest
 from .types import InputQueueElement
@@ -46,6 +47,9 @@ async def parent() -> None:
 
             # input and output from/to cpu
             nursery.start_soon(cpu, broker)
+
+            # store game results
+            nursery.start_soon(save, broker)
     finally:
         await broker.remove_topic(INPUT_TOPIC)
         await broker.remove_topic(OUTPUT_TOPIC)
