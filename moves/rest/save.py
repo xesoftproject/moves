@@ -15,38 +15,48 @@ from typing import TypedDict, Dict
 
 LOGS = getLogger(__name__)
 
-DEFAULT_FN = 'games_history.js'
+DEFAULT_FN = 'games_history.json'
 
 
 class PlayerGamesHistory(TypedDict):
-    won_count: int
-    played_count: int
+    victories: int
+    defeats: int
+    draws: int
 
 
 GamesHistory = Dict[str, PlayerGamesHistory]
 
 
 def store(player_id: str, *, is_victory: bool) -> None:
-    won_count_delta = 1 if is_victory else -1
-    played_count_delta = 1
+    victories_delta = 1 if is_victory else 0
+    defeats_delta = 0 if is_victory else 1
+    draws_delta = 0 # not supported
 
-    with open(DEFAULT_FN, 'r') as fp:
-        json: GamesHistory = load(fp)
+    try:
+        with open(DEFAULT_FN, 'r') as fp:
+            json: GamesHistory = load(fp)
+    except FileNotFoundError:
+        json = {}
 
     if player_id not in json:
-        json[player_id] = PlayerGamesHistory(won_count=0, played_count=0)
+        json[player_id] = PlayerGamesHistory(victories=0, defeats=0, draws=0)
 
-    json[player_id]['won_count'] += won_count_delta
-    json[player_id]['played_count'] += played_count_delta
+    json[player_id]['victories'] += victories_delta
+    json[player_id]['defeats'] += defeats_delta
+    json[player_id]['draws'] += draws_delta
 
     with open(DEFAULT_FN, 'w') as fp:
         dump(json, fp)
 
 
 def load_player(player_id: str) -> PlayerGamesHistory:
-    with open(DEFAULT_FN, 'r') as fp:
-        json: GamesHistory = load(fp)
-        return json[player_id]
+    json: GamesHistory
+    try:
+        with open(DEFAULT_FN, 'r') as fp:
+            json = load(fp)
+    except FileNotFoundError:
+        json = {}
+    return json.get(player_id, PlayerGamesHistory(victories=0, defeats=0, draws=0))
 
 
 async def save(broker: Broker) -> None:

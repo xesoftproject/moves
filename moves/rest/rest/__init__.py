@@ -247,8 +247,10 @@ async def mk_app(broker: Broker) -> QuartTrio:
 
     @app.route('/player_games_history/<string:player_id>', methods=['GET'])
     async def player_games_history(player_id: str) -> PlayerGamesHistory:
-        # TODO retrieve it from cookies
-        return load_player(player_id)
+        LOGS.info('player_games_history (player_id: %s)', player_id)
+        ret = load_player(player_id)
+        LOGS.info('player_games_history [ret: %s]', ret)
+        return ret
 
     return app
 
