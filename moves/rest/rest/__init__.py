@@ -134,6 +134,10 @@ async def mk_app(broker: Broker) -> QuartTrio:
     async def register(game_id: str) -> None:
         getLogger('VITO').info('register(%s)', game_id)
 
+
+        if game_id not in broker.topics[topic_games_id].messages:
+            raise Exception('unknown game_id')
+
         await websocket.accept()
 
         async with aclosing(broker.subscribe_topic(OUTPUT_TOPIC,
