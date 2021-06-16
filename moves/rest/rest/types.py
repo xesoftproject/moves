@@ -16,6 +16,8 @@ from ..types import Player
 from ..types import PlayerType
 
 Type = Literal['cpu', 'human']
+from chess import BLACK
+from chess import WHITE
 
 
 @dataclass()
@@ -83,16 +85,29 @@ class GamesOutput:
 class RegisterOutput:
     move: Optional[str]
     table: str
-    winner: Optional[str]
+    game_ended: bool
+    winner: Optional[str] # it's the player id (or None in case of draw)
 
     @classmethod
     def from_output_queue_element(
             cls, output_element: OutputQueueElement) -> 'RegisterOutput':
         board = output_element.game_universe.board
+        outcome = board.outcome()
+        game_ended = outcome is not None
+        winner: Optional[str] = None
+        if outcome is not None:
+            if outcome.winner == WHITE:
+                winner = output_element.game_universe.white.player_id
+            elif outcome.winner == BLACK:
+                assert output_element.game_universe.black is not None
+                winner = output_element.game_universe.black.player_id
+            else:
+                winner = None
 
-        return RegisterOutput(output_element.move,
-                              str(board),
-                              board.result() if board.is_game_over() else None)
+        return RegisterOutput(move=output_element.move,
+                              table=str(board),
+                              game_ended=game_ended,
+                              winner=winner)
 
     def json(self) -> str:
         return dumps(asdict(self))
