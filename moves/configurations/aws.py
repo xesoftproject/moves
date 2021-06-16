@@ -1,5 +1,5 @@
 # the hostname
-HOSTNAME = 'www.xesoft.ml'
+HOSTNAMES = ['www.xesoft.ml', 'xesoft.ml']
 
 # stockfish executable path (if not in $PATH)
 STOCKFISH = '/usr/games/stockfish'

@@ -20,7 +20,7 @@ from moves.rest.rest.types import AudioInput
 from moves.rest.rest.types import KaldiResult
 
 from ...configurations import CERTFILE
-from ...configurations import HOSTNAME
+from ...configurations import HOSTNAMES
 from ...configurations import KEYFILE
 from ...configurations import REST_PORT
 from ...triopubsub import Broker
@@ -66,7 +66,8 @@ async def mk_app(broker: Broker) -> QuartTrio:
     broker.add_topic(topic_games_id, str)
 
     app = cast(QuartTrio, cors(QuartTrio(__name__),
-                               allow_origin=f'https://{HOSTNAME}',
+                               allow_origin=[f'https://{hostname}'
+                                             for hostname in HOSTNAMES],
                                allow_methods=['POST'],
                                allow_headers=['content-type']))
 

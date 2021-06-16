@@ -18,7 +18,7 @@ else:
 
 REST_PORT = 8443
 
-__all__ = ['HOSTNAME',
+__all__ = ['HOSTNAMES',
            'REST_PORT',
            'STOCKFISH',
            'CERTFILE',
