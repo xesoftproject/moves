@@ -35,6 +35,11 @@ class Command(enum.Enum):
 
 
 @dataclasses.dataclass
+class Move:
+    move: str
+    user_id: str
+
+@dataclasses.dataclass
 class InputQueueElement:
     command: Command
 
@@ -46,7 +51,7 @@ class InputQueueElement:
     game_id: typing.Optional[str] = None
 
     # available only if command is MOVE
-    move: typing.Optional[str] = None
+    move: typing.Optional[Move] = None
 
 
 class Result(enum.Enum):

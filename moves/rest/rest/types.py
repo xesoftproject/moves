@@ -9,15 +9,17 @@ from typing import Tuple
 from typing import TypedDict
 from uuid import uuid4
 
+from chess import BLACK
+from chess import WHITE
+
 from ..types import Command
 from ..types import InputQueueElement
+from ..types import Move
 from ..types import OutputQueueElement
 from ..types import Player
 from ..types import PlayerType
 
 Type = Literal['cpu', 'human']
-from chess import BLACK
-from chess import WHITE
 
 
 @dataclass()
@@ -65,7 +67,8 @@ class UpdateInput:
     def input_queue_element(self) -> InputQueueElement:
         return InputQueueElement(command=Command.MOVE,
                                  game_id=self.game_id,
-                                 move=self.move)
+                                 move=Move(move=self.move,
+                                           user_id=self.user_id))
 
 
 Op = Literal['add', 'remove', 'update']
@@ -86,7 +89,8 @@ class RegisterOutput:
     move: Optional[str]
     table: str
     game_ended: bool
-    winner: Optional[str] # it's the player id (or None in case of draw)
+    winner: Optional[str]  # it's the player id (or None in case of draw)
+    error: Optional[str]
 
     @classmethod
     def from_output_queue_element(
@@ -107,15 +111,20 @@ class RegisterOutput:
         return RegisterOutput(move=output_element.move,
                               table=str(board),
                               game_ended=game_ended,
-                              winner=winner)
+                              winner=winner,
+                              error=str(output_element.error)
+                                    if output_element.error is not None
+                                    else None)
 
     def json(self) -> str:
         return dumps(asdict(self))
+
 
 class AudioInput(TypedDict):
     user_id: str
     game_id: str
     data: bytes
+
 
 class KaldiResult(TypedDict):
     text: str

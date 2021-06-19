@@ -1,11 +1,13 @@
 from logging import getLogger
-from typing import Dict
+from typing import Dict, Optional
 from typing import Iterator
 from uuid import uuid4
 
 from async_generator import aclosing
 from chess import Board
 
+from chess import BLACK
+from chess import WHITE
 from ..triopubsub import Broker
 from .constants import INPUT_TOPIC
 from .constants import OUTPUT_TOPIC
@@ -47,8 +49,22 @@ def handle(games: Dict[str, GameUniverse],
         game_universe = games[input_element.game_id]
         LOGS.info('[game_universe: %s]', game_universe)
 
+        # detect if the move is from the right player
+        error: Optional[Exception] = None
+        if ((game_universe.board.turn == WHITE and
+             game_universe.white.player_id != input_element.move.user_id) or
+            (game_universe.board.turn == BLACK and
+             (game_universe.black is None or
+              game_universe.black.player_id != input_element.move.user_id))):
+            error = Exception('wrong turn')
+
+        if error is not None:
+            yield OutputQueueElement(result=Result.ERROR,
+                                     game_universe=game_universe,
+                                     error=error)
+
         try:
-            move = game_universe.board.parse_uci(input_element.move)
+            move = game_universe.board.parse_uci(input_element.move.move)
             game_universe.board.push(move)
         except (AssertionError, ValueError) as e:
             LOGS.exception('invalid move: %s', input_element.move)
@@ -69,7 +85,7 @@ def handle(games: Dict[str, GameUniverse],
 
         yield OutputQueueElement(result=result,
                                  game_universe=game_universe,
-                                 move=input_element.move)
+                                 move=input_element.move.move)
         return
 
 

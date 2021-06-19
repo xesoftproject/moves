@@ -25,6 +25,7 @@ from .types import InputQueueElement
 from .types import OutputQueueElement
 from .types import PlayerType
 from .types import Result
+from .types import Move as RestMove
 
 LOGS = getLogger(__name__)
 
@@ -50,9 +51,21 @@ async def cpu_move(engine: UnionEngine,
     else:
         move = cast(Move, result.move)
 
+        user_id: str
+        if game_universe.board.turn == WHITE:
+            assert game_universe.white.player_type == PlayerType.CPU
+            user_id = game_universe.white.player_id
+        elif game_universe.board.turn == BLACK:
+            assert game_universe.black is not None
+            assert game_universe.black.player_type == PlayerType.CPU
+            user_id = game_universe.black.player_id
+        else:
+            LOGS.exception('unknown turn [%s]', game_universe.board.turn)
+            return
+
         yield InputQueueElement(command=Command.MOVE,
                                 game_id=game_universe.game_id,
-                                move=move.uci())
+                                move=RestMove(move=move.uci(), user_id=user_id))
 
 
 async def handle(engine: UnionEngine,
