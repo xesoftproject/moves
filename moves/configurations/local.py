@@ -3,7 +3,7 @@ from os import name
 from pkg_resources import resource_filename
 
 # the rest hostname
-HOSTNAMES = ['localhost']
+HOSTNAMES = ['localhost', 'localhost:8443', 'https://localhost']
 
 # stockfish executable path (if not in $PATH)
 STOCKFISH = ('/usr/games/stockfish'
