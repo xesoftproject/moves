@@ -19,7 +19,7 @@ from ..types import OutputQueueElement
 from ..types import Player
 from ..types import PlayerType
 
-Type = Literal['cpu', 'human']
+Type = Literal['cpu', 'human', 'invited_human']
 
 
 @dataclass()
@@ -27,27 +27,24 @@ class StartNewGameInput:
     user_id: str
     white: Type
     black: Type
+    invited_user_id: Optional[str]
 
     def _players(self) -> Tuple[Player, Optional[Player]]:
-        '''4 options:
-        human VS human -> white is player, black is None
-        human VS cpu -> white is player, black is cpu (random id)
-        cpu VS human -> white is random id, black is player
-        cpu VS cpu -> 2 random ids
-        '''
-
         if self.white == 'human':
             white = Player(self.user_id, PlayerType.HUMAN)
-            if self.black == 'human':
-                black = None
-            else:
-                black = Player(str(uuid4()), PlayerType.CPU)
+        elif self.white == 'invited_human':
+            assert self.invited_user_id is not None
+            white = Player(self.invited_user_id, PlayerType.HUMAN)
         else:
             white = Player(str(uuid4()), PlayerType.CPU)
-            if self.black == 'human':
-                black = Player(self.user_id, PlayerType.HUMAN)
-            else:
-                black = Player(str(uuid4()), PlayerType.CPU)
+
+        if self.black == 'human':
+            black = Player(self.user_id, PlayerType.HUMAN)
+        elif self.black == 'invited_human':
+            assert self.invited_user_id is not None
+            white = Player(self.invited_user_id, PlayerType.HUMAN)
+        else:
+            black = Player(str(uuid4()), PlayerType.CPU)
 
         return (white, black)
 
