@@ -42,7 +42,7 @@ class StartNewGameInput:
             black = Player(self.user_id, PlayerType.HUMAN)
         elif self.black == 'invited_human':
             assert self.invited_user_id is not None
-            white = Player(self.invited_user_id, PlayerType.HUMAN)
+            black = Player(self.invited_user_id, PlayerType.HUMAN)
         else:
             black = Player(str(uuid4()), PlayerType.CPU)
 
